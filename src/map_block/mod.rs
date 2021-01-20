@@ -15,7 +15,7 @@ pub use map_block::{MapBlock, is_valid_generated};
 pub use compression::ZlibContainer;
 pub use node_data::NodeData;
 pub use metadata::NodeMetadataList;
-pub use static_object::{StaticObject, StaticObjectList};
+pub use static_object::{StaticObject, StaticObjectList, LuaEntityData};
 pub use node_timer::{NodeTimer, NodeTimerList};
 pub use name_id_map::NameIdMap;
 

@@ -62,3 +62,25 @@ impl StaticObjectList {
 		}
 	}
 }
+
+
+pub struct LuaEntityData {
+	pub name: Vec<u8>,
+	pub data: Vec<u8>
+}
+
+impl LuaEntityData {
+	pub fn deserialize(src: &StaticObject) -> Result<Self, MapBlockError> {
+		if src.obj_type != 7 {
+			return Err(MapBlockError::Other);
+		}
+		let mut src_data = Cursor::new(src.data.as_slice());
+		if src_data.read_u8()? != 1 {
+			return Err(MapBlockError::Other);
+		}
+
+		let name = read_string16(&mut src_data)?;
+		let data = read_string32(&mut src_data)?;
+		Ok(Self {name, data})
+	}
+}

@@ -49,6 +49,7 @@ fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 		];
 	}
 	vec![match arg {
+		// TODO: Remove unused conditions here.
 		ArgType::InputMapPath =>
 			Arg::with_name("input_map")
 				.required(true)
@@ -90,6 +91,16 @@ fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 			Arg::with_name("param2_val")
 				.required(true)
 				.help(help),
+		ArgType::Object(req) =>
+			Arg::with_name("object")
+				.long("obj")
+				.takes_value(true)
+				.required(req)
+				.help(help),
+		ArgType::Items =>
+			Arg::with_name("items")
+				.long("items")
+				.help(help)
 	}]
 }
 
@@ -146,6 +157,8 @@ fn parse_cmd_line_args() -> anyhow::Result<InstArgs> {
 		new_node: sub_matches.value_of("new_node").map(str::to_string),
 		param2_val: sub_matches.value_of("param2_val")
 			.map(|v| v.parse().unwrap()),
+		object: sub_matches.value_of("object").map(str::to_string),
+		items: sub_matches.is_present("items"),
 	})
 }
 
