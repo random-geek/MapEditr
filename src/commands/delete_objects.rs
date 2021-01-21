@@ -1,7 +1,8 @@
 use super::Command;
 
+use crate::spatial::Area;
 use crate::instance::{ArgType, InstBundle};
-use crate::map_block::{MapBlock, LuaEntityData};
+use crate::map_block::{MapBlock, StaticObject, LuaEntityData};
 use crate::utils::{query_keys, fmt_big_num};
 
 use memmem::{Searcher, TwoWaySearcher};
@@ -17,21 +18,45 @@ macro_rules! unwrap_or {
 }
 
 
+#[inline]
+fn can_delete(
+	obj: &StaticObject,
+	area: &Option<Area>,
+	invert: bool
+) -> bool {
+	// Check area requirements
+	if let Some(a) = area {
+		const DIV_FAC: i32 = 10_000;
+		let rounded_pos = obj.f_pos.map(
+			|v| (v - DIV_FAC / 2).div_euclid(DIV_FAC));
+		if a.contains(rounded_pos) == invert {
+			return false;
+		}
+	}
+
+	true
+}
+
+
 fn delete_objects(inst: &mut InstBundle) {
-	const ITEM_ENT_NAME: &'static [u8] = b"__builtin:item";
+	const ITEM_ENT_NAME: &[u8] = b"__builtin:item";
 	let search_obj = if inst.args.items {
-		Some(String::from_utf8(ITEM_ENT_NAME.to_vec()).unwrap())
+		Some(ITEM_ENT_NAME.to_owned())
 	} else {
-		inst.args.object.clone()
+		inst.args.object.as_ref().map(|s| s.as_bytes().to_owned())
 	};
 	let keys = query_keys(&mut inst.db, &mut inst.status,
-		search_obj.clone(), inst.args.area, inst.args.invert, true);
+		search_obj.as_deref(), inst.args.area, inst.args.invert, true);
+
+	let search_item = search_obj.as_ref().filter(|_| inst.args.items).map(|s|
+		format!(
+			"[\"itemstring\"] = \"{}\"",
+			String::from_utf8(s.to_owned()).unwrap()
+		).into_bytes()
+	);
+	let item_searcher = search_item.as_ref().map(|s| TwoWaySearcher::new(s));
 
 	inst.status.begin_editing();
-
-	let item_searcher = search_obj.as_ref().filter(|_| inst.args.items)
-		.map(|s| TwoWaySearcher::new(format!("[itemstring]=\"{}\"", s)));
-
 	let mut count: u64 = 0;
 	for key in keys {
 		inst.status.inc_done();
@@ -42,39 +67,15 @@ fn delete_objects(inst: &mut InstBundle) {
 		for i in (0..block.static_objects.list.len()).rev() {
 			let obj = &block.static_objects.list[i];
 
-			// Check area requirements
-			if let Some(area) = inst.args.area {
-				const DIV_FAC: i32 = 10_000;
-				let rounded_pos = obj.f_pos.map(
-					|v| (v - DIV_FAC / 2).div_euclid(DIV_FAC));
-				if area.contains(rounded_pos) == inst.args.invert {
-					continue;
-				}
+			if can_delete(
+				&block.static_objects.list[i],
+				&inst.args.area,
+				inst.args.invert
+			) {
+				block.static_objects.list.remove(i);
+				modified = true;
+				count += 1;
 			}
-
-			// Check name requirements
-			let le_data = unwrap_or!(LuaEntityData::deserialize(&obj),
-				continue);
-			if inst.args.items {
-				if le_data.name != ITEM_ENT_NAME {
-					continue;
-				}
-				if let Some(searcher) = &item_searcher {
-					if searcher.search_in(&le_data.data).is_none() {
-						continue;
-					}
-				}
-			} else {
-				if let Some(sobj) = &search_obj {
-					if le_data.name != sobj.as_bytes() {
-						continue;
-					}
-				}
-			}
-
-			block.static_objects.list.remove(i);
-			modified = true;
-			count += 1;
 		}
 
 		if modified {

@@ -74,6 +74,22 @@ area.
 will be invoked where the blocks were deleted, and this sometimes causes
 terrain glitches.
 
+### deleteobjects
+
+Usage: `deleteobjects [--obj <obj>] [--items] [--p1 x y z] [--p2 x y z] [--invert]`
+
+Delete objects (entities) of a certain name and/or within a certain area.
+
+Arguments:
+
+- `--obj`: Name of object to search for, e.g. "boats:boat". If not specified,
+all objects will be deleted.
+- `--items`: Search for only item entities (dropped items). If this flag is
+set, `--obj` can optionally be used to specify an item name.
+- `--p1, --p2`: Area in which to delete objects. If not specified, objects will
+be deleted across the entire map.
+- `--invert`: Delete objects *outside* the given area.
+
 ### fill
 
 Usage: `fill --p1 x y z --p2 x y z [--invert] <new_node>`
@@ -154,6 +170,21 @@ all nodes will be set.
 not specified.
 - `--invert`: Only set param2 *outside* the given area.
 
+### vacuum
+
+Usage: `vacuum`
+
+Vacuums the database. This reduces the size of the database, but may take a
+long time.
+
+All this does is perform an SQLite `VACUUM` command. This shrinks and optimizes
+the database by efficiently "repacking" all mapblocks. No map data is changed
+or deleted.
+
+**Note:** Because data is copied into another file, vacuum could require
+as much free disk space as is already occupied by the map. For example, if
+map.sqlite is 10 GB, make sure you have **at least 10 GB** of free space!
+
 
 
 
@@ -216,28 +247,3 @@ Arguments:
 - **`--searchnode`**: Name of node to search for. If not specified, the node timers of all nodes will be deleted.
 - **`--p1, --p2`**: Area in which to delete node timers. Required if `searchnode` is not specified.
 - **`--invert`**: Only delete node timers *outside* the given area.
-
-### `deleteobjects`
-
-**Usage:** `deleteobjects [--searchobj <searchobj>] [--items] [--p1 x y z] [--p2 x y z] [--invert]`
-
-Delete static objects of a certain name and/or within a certain area.
-
-Arguments:
-
-- **`--searchobj`**: Name of object to search for, e.g. "boats:boat". If not specified, all objects will be deleted.
-- **`--items`**: Search for only item entities (dropped items). `searchobj` determines the item name, if specified.
-- **`--p1, --p2`**: Area in which to delete objects. If not specified, objects will be deleted across the entire map.
-- **`--invert`**: Only delete objects *outside* the given area.
-
-### `vacuum`
-
-**Usage:** `vacuum`
-
-Vacuums the database. This reduces the size of the database, but may take a long time.
-
-All this does is perform an SQLite `VACUUM` command. This shrinks and optimizes the database by efficiently "repacking" all mapblocks.
-No map data is changed or deleted.
-
-**Note:** Because data is copied into another file, this command could require as much free disk space as is already occupied by the map.
-For example, if your database is 10 GB, make sure you have **at least 10 GB** of free space!

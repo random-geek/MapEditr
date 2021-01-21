@@ -23,7 +23,7 @@ fn fill_area(block: &mut MapBlock, area: Area, id: u16) {
 
 fn fill(inst: &mut InstBundle) {
 	let area = inst.args.area.unwrap();
-	let node = inst.args.new_node.clone().unwrap();
+	let node = inst.args.new_node.as_ref().unwrap().as_bytes().to_owned();
 
 	let keys = query_keys(&mut inst.db, &mut inst.status,
 		None, Some(area), false, true);

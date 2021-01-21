@@ -8,7 +8,7 @@ use super::*;
 #[derive(Debug)]
 pub struct NameIdMap {
 	// Use a BTreeMap instead of a HashMap to preserve the order of IDs.
-	pub map: BTreeMap<u16, String>,
+	pub map: BTreeMap<u16, Vec<u8>>,
 }
 
 impl NameIdMap {
@@ -26,8 +26,7 @@ impl NameIdMap {
 		for _ in 0 .. count {
 			let id = data.read_u16::<BigEndian>()?;
 			let name = read_string16(data)?;
-			let string = String::from_utf8_lossy(&name).into_owned();
-			map.insert(id, string);
+			map.insert(id, name);
 		}
 
 		Ok(Self {map})
@@ -39,14 +38,15 @@ impl NameIdMap {
 
 		for (id, name) in &self.map {
 			out.write_u16::<BigEndian>(*id).unwrap();
-			write_string16(out, name.as_bytes());
+			write_string16(out, name);
 		}
 	}
 
 	#[inline]
-	pub fn get_id(&self, name: &str) -> Option<u16> {
-		self.map.iter()
-			.find_map(|(&k, v)| if v == name { Some(k) } else { None })
+	pub fn get_id(&self, name: &[u8]) -> Option<u16> {
+		self.map.iter().find_map(|(&k, v)|
+			if v.as_slice() == name { Some(k) } else { None }
+		)
 	}
 
 	#[inline]
@@ -55,8 +55,8 @@ impl NameIdMap {
 	}
 
 	#[inline]
-	pub fn insert(&mut self, id: u16, name: &str) {
-		self.map.insert(id, name.to_string());
+	pub fn insert(&mut self, id: u16, name: &[u8]) {
+		self.map.insert(id, name.to_owned());
 	}
 
 	/// Remove the name at a given ID and shift down values above it.

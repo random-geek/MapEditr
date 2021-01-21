@@ -11,7 +11,7 @@ use crate::spatial::{Area, Vec3};
 pub fn query_keys(
 	db: &mut MapDatabase,
 	status: &StatusServer,
-	search_str: Option<String>,
+	search_str: Option<&[u8]>,
 	area: Option<Area>,
 	invert: bool,
 	include_partial: bool
@@ -22,8 +22,8 @@ pub fn query_keys(
 	// This will break if the name-ID map format changes.
 	let search_bytes = search_str.map(|s| {
 		let mut res = Vec::new();
-		res.write_u16::<BigEndian>(s.as_bytes().len() as u16).unwrap();
-		res.extend(s.as_bytes());
+		res.write_u16::<BigEndian>(s.len() as u16).unwrap();
+		res.extend(s);
 		res
 	});
 	let data_searcher = search_bytes.as_ref().map(|b| {

@@ -1,7 +1,7 @@
 use super::Command;
 
 use crate::spatial::{Vec3, Area, area_rel_block_overlap, area_contains_block};
-use crate::instance::{ArgType, InstBundle};
+use crate::instance::{ArgType, InstArgs, InstBundle};
 use crate::map_block::{MapBlock};
 use crate::utils::{query_keys, fmt_big_num};
 
@@ -42,12 +42,11 @@ fn set_in_area(block: &mut MapBlock, area: Area, val: u8) {
 
 
 fn set_param2(inst: &mut InstBundle) {
-	// TODO: Actually verify!
-	assert!(inst.args.area.is_some() || inst.args.node.is_some());
 	let param2_val = inst.args.param2_val.unwrap();
+	let node = inst.args.node.as_ref().map(|s| s.as_bytes().to_owned());
 
 	let keys = query_keys(&mut inst.db, &mut inst.status,
-		inst.args.node.clone(), inst.args.area, false, true);
+		node.as_deref(), inst.args.area, false, true);
 
 	inst.status.begin_editing();
 
@@ -59,8 +58,7 @@ fn set_param2(inst: &mut InstBundle) {
 		let data = inst.db.get_block(key).unwrap();
 		let mut block = MapBlock::deserialize(&data).unwrap();
 
-		let node_id = inst.args.node.as_deref()
-			.and_then(|node| block.nimap.get_id(&node));
+		let node_id = node.as_ref().and_then(|n| block.nimap.get_id(n));
 		if inst.args.node.is_some() && node_id.is_none() {
 			// Node not found in this map block.
 			continue;
@@ -103,10 +101,17 @@ fn set_param2(inst: &mut InstBundle) {
 }
 
 
+fn verify_args(args: &InstArgs) -> anyhow::Result<()> {
+	anyhow::ensure!(args.area.is_some() || args.node.is_some(),
+		"An area and/or node must be provided.");
+	Ok(())
+}
+
+
 pub fn get_command() -> Command {
 	Command {
 		func: set_param2,
-		verify_args: None,
+		verify_args: Some(verify_args),
 		args: vec![
 			(ArgType::Area(false), "Area in which to set param2 values"),
 			(ArgType::Node(false), "Node to set param2 values of"),
