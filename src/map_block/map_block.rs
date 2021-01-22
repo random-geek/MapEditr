@@ -1,5 +1,7 @@
 use super::*;
 
+use super::node_timer::{serialize_timers, deserialize_timers};
+
 const MIN_BLOCK_VER: u8 = 25;
 const MAX_BLOCK_VER: u8 = 28;
 
@@ -25,7 +27,7 @@ pub struct MapBlock {
 	pub static_objects: StaticObjectList,
 	pub timestamp: u32,
 	pub nimap: NameIdMap,
-	pub node_timers: NodeTimerList
+	pub node_timers: Vec<NodeTimer>
 }
 
 impl MapBlock {
@@ -64,7 +66,7 @@ impl MapBlock {
 		// Name-ID mappings
 		let nimap = NameIdMap::deserialize(&mut data)?;
 		// Node timers
-		let node_timers = NodeTimerList::deserialize(&mut data)?;
+		let node_timers = deserialize_timers(&mut data)?;
 
 		Ok(Self {
 			version,
@@ -113,7 +115,7 @@ impl MapBlock {
 		// Name-ID mappings
 		self.nimap.serialize(&mut data);
 		// Node timers
-		self.node_timers.serialize(&mut data);
+		serialize_timers(&self.node_timers, &mut data);
 
 		buf = data.into_inner();
 		buf.shrink_to_fit();

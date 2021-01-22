@@ -67,6 +67,17 @@ pub fn query_keys(
 }
 
 
+#[macro_export]
+macro_rules! unwrap_or {
+	($res:expr, $alt:expr) => {
+		match $res {
+			Ok(val) => val,
+			Err(_) => $alt
+		}
+	}
+}
+
+
 pub fn fmt_duration(dur: Duration) -> String {
 	let s = dur.as_secs();
 	if s < 3600 {

@@ -1,5 +1,6 @@
 use super::Command;
 
+use crate::unwrap_or;
 use crate::spatial::Area;
 use crate::instance::{ArgType, InstBundle};
 use crate::map_block::{MapBlock, StaticObject, LuaEntityData};
@@ -7,18 +8,7 @@ use crate::utils::{query_keys, fmt_big_num};
 
 use memmem::{Searcher, TwoWaySearcher};
 
-
 const ITEM_ENT_NAME: &[u8] = b"__builtin:item";
-
-
-macro_rules! unwrap_or {
-	($res:expr, $alt:expr) => {
-		match $res {
-			Ok(val) => val,
-			Err(_) => $alt
-		}
-	}
-}
 
 
 #[inline]
@@ -118,9 +108,11 @@ pub fn get_command() -> Command {
 			(ArgType::Area(false), "Area in which to delete objects"),
 			(ArgType::Invert, "Delete all objects outside the area"),
 			(ArgType::Object(false),
-				"Name of object (or item with --item) to search for."),
+				"Name of object to delete. If not specified, all objects will \
+				be deleted"),
 			(ArgType::Items,
-				"Delete dropped items using object name as item name."),
+				"Delete item entities. Optionally specify an item name to \
+				delete."),
 		],
 		help: "Delete certain objects (entities)."
 	}
