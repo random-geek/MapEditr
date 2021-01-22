@@ -76,18 +76,18 @@ terrain glitches.
 
 ### deleteobjects
 
-Usage: `deleteobjects [--obj <obj>] [--items] [--p1 x y z] [--p2 x y z] [--invert]`
+Usage: `deleteobjects [--obj <object>] [--items [item]] [--p1 x y z] [--p2 x y z] [--invert]`
 
-Delete objects (entities) of a certain name and/or within a certain area.
+Delete objects/entities, including item entities (dropped items).
 
 Arguments:
 
-- `--obj`: Name of object to search for, e.g. "boats:boat". If not specified,
+- `--obj`: Name of object to delete, e.g. "boats:boat". If not specified,
 all objects will be deleted.
-- `--items`: Search for only item entities (dropped items). If this flag is
-set, `--obj` can optionally be used to specify an item name.
+- `--items [item]`: Delete item entities (dropped items). If an optional item
+name is specified, only items with that name will be deleted.
 - `--p1, --p2`: Area in which to delete objects. If not specified, objects will
-be deleted across the entire map.
+be deleted everywhere.
 - `--invert`: Delete objects *outside* the given area.
 
 ### fill

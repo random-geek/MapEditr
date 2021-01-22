@@ -53,7 +53,7 @@ Some parts of the original MapEdit code were adapted from AndrejIT's
 [map_unexplore][5] project. All due credit goes to the author(s) of that
 project.
 
-Thank you to ExeterDad and the moderators of the late Hometown server, for
+Thank you also to ExeterDad and the moderators of the late Hometown server, for
 partially inspiring MapEdit/MapEditr.
 
 [4]: https://github.com/minetest/minetest

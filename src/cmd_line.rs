@@ -100,6 +100,8 @@ fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 		ArgType::Items =>
 			Arg::with_name("items")
 				.long("items")
+				.min_values(0)
+				.max_values(1)
 				.help(help)
 	}]
 }
@@ -158,7 +160,8 @@ fn parse_cmd_line_args() -> anyhow::Result<InstArgs> {
 		param2_val: sub_matches.value_of("param2_val")
 			.map(|v| v.parse().unwrap()),
 		object: sub_matches.value_of("object").map(str::to_string),
-		items: sub_matches.is_present("items"),
+		items: sub_matches.values_of("items")
+			.map(|v| v.map(str::to_string).collect()),
 	})
 }
 

@@ -35,7 +35,7 @@ pub struct InstArgs {
 	pub new_node: Option<String>,
 	pub param2_val: Option<u8>,
 	pub object: Option<String>,
-	pub items: bool,
+	pub items: Option<Vec<String>>,
 }
 
 
