@@ -9,19 +9,16 @@ operations that would be impractical to do using WorldEdit. Since it is mainly
 optimized for speed, MapEditr is not as full-featured as in-game world editors
 such as WorldEdit.
 
-MapEditr is originally based on [MapEdit][2], but rewritten in Rust,
-hence the added "r". Switching to a compiled language will make MapEditr more
-robust and easier to maintain in the future.
+MapEditr is originally based on [MapEdit][2], but rewritten in Rust, hence the
+added "r". Switching to a compiled language will make MapEditr more robust and
+easier to maintain in the future.
 
 [1]: https://github.com/Uberi/Minetest-WorldEdit
 [2]: https://github.com/random-geek/MapEdit
 
 ## Installation
 
-TODO: This section is vague.
-
-Pre-built binaries are available on the Releases page. This is the easiest way
-to get MapEditr.
+TODO: Pre-built binaries
 
 To compile from source, you must have Rust installed first, which can be
 downloaded from [here][3]. Then, in the MapEditr directory, run:

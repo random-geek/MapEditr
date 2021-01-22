@@ -2,28 +2,21 @@
 
 ## Introduction
 
-MapEditr is a command-line tool for editing Minetest worlds, specifically
-Minetest maps. Note that MapEditr is not a mod or plugin; it is a separate
-program which operates independently of Minetest.
+MapEditr is a command-line tool for editing Minetest worlds. Note that MapEditr
+is not a mod or plugin; it is a separate program which operates independently
+of Minetest.
 
-Minetest *worlds* are stored in the `worlds` folder within Minetest's
-installation directory. Each world is a folder containing a *map database*,
-usually named `map.sqlite`, among other files. The map database contains the
-physical layout of that world, including all nodes (blocks) and objects (mobs,
-etc.). This file is what MapEditr reads and edits.
+MapEditr reads and edits *map databases*, usually a file named `map.sqlite`
+within each Minetest world directory. As such, the terms "world" and "map" may
+be used interchangeably.
 
-Minetest stores map data in *mapblocks*. A single map block is a cubical,
-16x16x16 node area of the map. The lower southwestern corner of a mapblock
-(towards -X, -Y, -Z) is always at coordinates divisible by 16, e.g.
-(0, 16, -48) or the like.
+For most commands to work, the areas of the map to be read/modified must
+already be generated. This can be done by either exploring the area in-game,
+or by using Minetest's built-in `/emergeblocks` command.
 
-For most commands to work, the mapblocks to be read and modified must already
-be generated within Minetest. This can be achieved by either exploring the area
-in-game, or by using Minetest's built-in `/emergeblocks` command.
-
-MapEditr supports map format versions 25 through 28, meaning all worlds
-created since Minetest version 0.4.2-rc1 (released July 2012) should be
-supported. Unsupported mapblocks will be skipped (TODO).
+MapEditr supports all maps created since Minetest version 0.4.2-rc1, released
+July 2012. Any unsupported areas of the map will be skipped (TODO). Note that
+only SQLite format maps are currently supported.
 
 ## General usage
 
@@ -32,10 +25,9 @@ supported. Unsupported mapblocks will be skipped (TODO).
 Arguments:
 
 - `-h`: Show a help message and exit.
-- `<map>`: Path to the Minetest world to edit; this can be either a world
-directory or a `map.sqlite` file. Note that only worlds with SQLite map
-databases are currently supported. This file will be modified, so *always* shut
-down the game/server before executing the command.
+- `<map>`: Path to the Minetest world/map to edit; this can be either a world
+directory or a `map.sqlite` file within a world folder. This file will be
+modified, so *always* shut down the game/server before executing any command.
 - `<subcommand>`: Command to execute. See "Commands" section below.
 
 ### Common command arguments
@@ -56,6 +48,21 @@ fix these, use Minetest's built-in `/fixlight` command, or the equivalent
 WorldEdit `//fixlight` command.
 
 ## Commands
+
+### clone
+
+Usage: `clone --p1 x y z --p2 x y z --offset x y z`
+
+Clone (copy) the given area to a new location.
+
+Arguments:
+
+- `--p1, --p2`: Area to copy from.
+- `--offset`: Offset to shift the area by. For example, to copy an area 50
+nodes upward (positive Y direction), use `--offset 0 50 0`.
+
+This command copies nodes, param1, param2, and metadata. Nothing will be copied
+into mapblocks that are not yet generated.
 
 ### deleteblocks
 
@@ -90,6 +97,19 @@ name is specified, only items with that name will be deleted.
 be deleted everywhere.
 - `--invert`: Delete objects *outside* the given area.
 
+### deletetimers
+
+Usage: `deletetimers [--node <node>] [--p1 x y z] [--p2 x y z] [--invert]`
+
+Delete node timers of a certain node and/or within a certain area.
+
+Arguments:
+
+- `--node`: Name of node to modify. If not specified, the node timers of all
+nodes will be deleted.
+- `--p1, --p2`: Area in which to delete node timers.
+- `--invert`: Only delete node timers *outside* the given area.
+
 ### fill
 
 Usage: `fill --p1 x y z --p2 x y z [--invert] <new_node>`
@@ -105,38 +125,29 @@ Arguments:
 - `--p1, --p2`: Area to fill.
 - `--invert`: Fill everything *outside* the given area.
 
-### clone
-
-Usage: `clone --p1 x y z --p2 x y z --offset x y z`
-
-Clone (copy) the given area to a new location.
-
-Arguments:
-
-- `--p1, --p2`: Area to copy from.
-- `--offset`: Offset to shift the area by. For example, to copy an area 50
-nodes upward (positive Y direction), use `--offset 0 50 0`.
-
-This command copies nodes, param1, param2, and metadata. Nothing will be copied
-into mapblocks that are not yet generated.
-
 ### overlay
 
-Usage: `overlay [--p1 x y z] [--p2 x y z] [--invert] [--offset x y z] <input_map>`
+Usage: `overlay <input_map> [--p1 x y z] [--p2 x y z] [--invert] [--offset x y z]`
 
-Copy part or all of an input map into the main map.
+Copy part or all of a source map into the main map.
 
 Arguments:
 
-- `input_map`: Path to input map file. This will not be modified.
+- `input_map`: Path to source map/world. This will not be modified.
 - `--p1, --p2`: Area to copy from. If not specified, MapEditr will try to
 copy everything from the input map file.
 - `--invert`: If present, copy everything *outside* the given area.
 - `--offset`: Offset to move nodes by when copying; default is no offset.
 Currently, an offset cannot be used with an inverted selection.
 
-This command will always copy nodes, param1 and param2, and metadata. If no
-offset is used, entities and node timers may also be copied.
+This command will always copy nodes, param1, param2, and metadata. If no
+offset is used, objects/entities and node timers may also be copied.
+
+To ensure that all data is copied, make sure the edges of the selection are
+generated in the destination map, or the entire selection if an offset is used.
+
+**Tip:** Overlay will be significantly faster if no offset is used, as
+mapblocks can be copied verbatim.
 
 ### replacenodes
 
@@ -235,15 +246,3 @@ Arguments:
 - **`--invert`**: Only search for nodes *outside* the given area.
 
 **Tip:** To only delete metadata without replacing the nodes, use the `--deletemeta` flag, and make `replaceitem` the same as `searchitem`.
-
-### `deletetimers`
-
-**Usage:** `deletetimers [--searchnode <searchnode>] [--p1 x y z] [--p2 x y z] [--invert]`
-
-Delete node timers of a certain node and/or within a certain area.
-
-Arguments:
-
-- **`--searchnode`**: Name of node to search for. If not specified, the node timers of all nodes will be deleted.
-- **`--p1, --p2`**: Area in which to delete node timers. Required if `searchnode` is not specified.
-- **`--invert`**: Only delete node timers *outside* the given area.
