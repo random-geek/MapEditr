@@ -31,35 +31,33 @@ impl StaticObject {
 }
 
 
-#[derive(Debug)]
-pub struct StaticObjectList {
-	pub list: Vec<StaticObject>
-}
+pub type StaticObjectList = Vec<StaticObject>;
 
-impl StaticObjectList {
-	pub fn deserialize(src: &mut Cursor<&[u8]>)
-		-> Result<Self, MapBlockError>
-	{
-		let version = src.read_u8()?;
-		if version != 0 {
-			return Err(MapBlockError::Other);
-		}
 
-		let count = src.read_u16::<BigEndian>()?;
-		let mut list = Vec::with_capacity(count as usize);
-		for _ in 0 .. count {
-			list.push(StaticObject::deserialize(src)?);
-		}
-
-		Ok(Self {list})
+pub fn deserialize_objects(src: &mut Cursor<&[u8]>)
+	-> Result<StaticObjectList, MapBlockError>
+{
+	let version = src.read_u8()?;
+	if version != 0 {
+		return Err(MapBlockError::Other);
 	}
 
-	pub fn serialize(&self, dst: &mut Cursor<Vec<u8>>) {
-		dst.write_u8(0).unwrap();
-		dst.write_u16::<BigEndian>(self.list.len() as u16).unwrap();
-		for obj in &self.list {
-			obj.serialize(dst);
-		}
+	let count = src.read_u16::<BigEndian>()?;
+	let mut list = Vec::with_capacity(count as usize);
+	for _ in 0 .. count {
+		list.push(StaticObject::deserialize(src)?);
+	}
+
+	Ok(list)
+}
+
+
+pub fn serialize_objects(objects: &StaticObjectList, dst: &mut Cursor<Vec<u8>>)
+{
+	dst.write_u8(0).unwrap();
+	dst.write_u16::<BigEndian>(objects.len() as u16).unwrap();
+	for obj in objects {
+		obj.serialize(dst);
 	}
 }
 

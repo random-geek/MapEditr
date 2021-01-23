@@ -1,11 +1,8 @@
-use std::io::Cursor;
-use std::io::prelude::*;
+use super::*;
 
 use flate2::write::ZlibEncoder;
 use flate2::read::ZlibDecoder;
 use flate2::Compression;
-
-use super::MapBlockError;
 
 
 pub trait Compress {

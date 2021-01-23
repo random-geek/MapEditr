@@ -81,6 +81,21 @@ area.
 will be invoked where the blocks were deleted, and this sometimes causes
 terrain glitches.
 
+### deletemeta
+
+Usage: `deletemeta [--node <node>] [--p1 x y z] [--p2 x y z] [--invert]`
+
+Delete metadata of a certain node and/or within a certain area. This includes
+node inventories as well.
+
+Arguments:
+
+- `--node`: Name of node to modify. If not specified, the metadata of all
+nodes will be deleted.
+- `--p1, --p2`: Area in which to delete metadata. If not specified, metadata
+will be deleted everywhere.
+- `--invert`: Only delete metadata *outside* the given area.
+
 ### deleteobjects
 
 Usage: `deleteobjects [--obj <object>] [--items [item]] [--p1 x y z] [--p2 x y z] [--invert]`
@@ -202,18 +217,6 @@ map.sqlite is 10 GB, make sure you have **at least 10 GB** of free space!
 
 
 # Danger Zone!
-
-### `deletemeta`
-
-**Usage:** `deletemeta [--searchnode <searchnode>] [--p1 x y z] [--p2 x y z] [--invert]`
-
-Delete metadata of a certain node and/or within a certain area. This includes node inventories as well.
-
-Arguments:
-
-- **`--searchnode`**: Name of node to search for. If not specified, the metadata of all nodes will be deleted.
-- **`--p1, --p2`**: Area in which to delete metadata. Required if `searchnode` is not specified.
-- **`--invert`**: Only delete metadata *outside* the given area.
 
 ### `setmetavar`
 

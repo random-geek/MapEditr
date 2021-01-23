@@ -3,11 +3,11 @@ use super::Command;
 use crate::unwrap_or;
 use crate::spatial::Vec3;
 use crate::instance::{ArgType, InstBundle};
-use crate::map_block::MapBlock;
+use crate::map_block::{MapBlock, NodeMetadataList};
 use crate::utils::{query_keys, fmt_big_num};
 
 
-fn delete_timers(inst: &mut InstBundle) {
+fn delete_metadata(inst: &mut InstBundle) {
 	let node = inst.args.node.as_ref().map(|s| s.as_bytes().to_owned());
 
 	let keys = query_keys(&mut inst.db, &mut inst.status,
@@ -21,18 +21,20 @@ fn delete_timers(inst: &mut InstBundle) {
 		let data = inst.db.get_block(key).unwrap();
 		let mut block = unwrap_or!(MapBlock::deserialize(&data), continue);
 
+		let node_data = block.node_data.get_ref();
 		let node_id = node.as_deref().and_then(|n| block.nimap.get_id(n));
 		if node.is_some() && node_id.is_none() {
 			continue; // Block doesn't contain the required node.
 		}
-		let node_data = block.node_data.get_ref();
+
+		let mut meta = unwrap_or!(
+			NodeMetadataList::deserialize(block.metadata.get_ref()), continue);
 
 		let block_corner = Vec3::from_block_key(key) * 16;
-		let mut modified = false;
+		let mut to_delete = Vec::with_capacity(meta.list.len());
 
-		for i in (0..block.node_timers.len()).rev() {
-			let pos_idx = block.node_timers[i].pos;
-			let pos = Vec3::from_u16_key(pos_idx);
+		for (&idx, _) in &meta.list {
+			let pos = Vec3::from_u16_key(idx);
 			let abs_pos = pos + block_corner;
 
 			if let Some(a) = inst.args.area {
@@ -41,38 +43,41 @@ fn delete_timers(inst: &mut InstBundle) {
 				}
 			}
 			if let Some(id) = node_id {
-				if node_data.nodes[pos_idx as usize] != id {
+				if node_data.nodes[idx as usize] != id {
 					continue;
 				}
 			}
 
-			block.node_timers.remove(i);
-			count += 1;
-			modified = true;
+			to_delete.push(idx);
 		}
 
-		if modified {
+		if !to_delete.is_empty() {
+			count += to_delete.len() as u64;
+			for idx in &to_delete {
+				meta.list.remove(idx);
+			}
+			*block.metadata.get_mut() = meta.serialize(block.version);
 			inst.db.set_block(key, &block.serialize()).unwrap();
 		}
 	}
 
 	inst.status.end_editing();
 	inst.status.log_info(
-		format!("Deleted {} node timers.", fmt_big_num(count)));
+		format!("Deleted metadata from {} nodes.", fmt_big_num(count)));
 }
 
 
 pub fn get_command() -> Command {
 	Command {
-		func: delete_timers,
+		func: delete_metadata,
 		verify_args: None,
 		args: vec![
-			(ArgType::Area(false), "Area in which to delete timers"),
-			(ArgType::Invert, "Delete all timers outside the given area."),
+			(ArgType::Area(false), "Area in which to delete metadata"),
+			(ArgType::Invert, "Delete all metadata outside the given area."),
 			(ArgType::Node(false),
-				"Node to delete timers from. If not specified, all node \
-				timers will be deleted.")
+				"Node to delete metadata from. If not specified, all metadata \
+				will be deleted.")
 		],
-		help: "Delete node timers."
+		help: "Delete node metadata."
 	}
 }

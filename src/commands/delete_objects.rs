@@ -76,15 +76,15 @@ fn delete_objects(inst: &mut InstBundle) {
 		let mut block = unwrap_or!(MapBlock::deserialize(&data), continue);
 
 		let mut modified = false;
-		for i in (0..block.static_objects.list.len()).rev() {
+		for i in (0..block.static_objects.len()).rev() {
 			if can_delete(
-				&block.static_objects.list[i],
+				&block.static_objects[i],
 				&inst.args.area,
 				inst.args.invert,
 				&search_obj,
 				&item_searcher
 			) {
-				block.static_objects.list.remove(i);
+				block.static_objects.remove(i);
 				modified = true;
 				count += 1;
 			}

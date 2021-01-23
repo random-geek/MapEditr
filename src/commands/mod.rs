@@ -4,6 +4,7 @@ use crate::instance::{ArgType, InstArgs, InstBundle};
 
 mod clone;
 mod delete_blocks;
+mod delete_metadata;
 mod delete_objects;
 mod delete_timers;
 mod fill;
@@ -31,6 +32,7 @@ pub fn get_commands() -> BTreeMap<&'static str, Command> {
 
 	new_cmd!("clone", clone);
 	new_cmd!("deleteblocks", delete_blocks);
+	new_cmd!("deletemeta", delete_metadata);
 	new_cmd!("deleteobjects", delete_objects);
 	new_cmd!("deletetimers", delete_timers);
 	new_cmd!("fill", fill);

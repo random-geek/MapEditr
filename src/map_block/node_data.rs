@@ -1,14 +1,8 @@
-use std::io::Cursor;
-use std::io::prelude::*;
-
 use flate2::write::ZlibEncoder;
 use flate2::read::ZlibDecoder;
 use flate2::Compression;
 
-use byteorder::{ByteOrder, BigEndian};
-
-use super::{MapBlockError, vec_with_len};
-use super::compression::Compress;
+use super::*;
 
 
 const BLOCK_SIZE: usize = 16;

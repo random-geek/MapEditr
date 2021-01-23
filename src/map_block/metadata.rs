@@ -1,12 +1,8 @@
-use std::io::prelude::*;
-use std::io::Cursor;
 use std::collections::HashMap;
 
-use byteorder::{ReadBytesExt, WriteBytesExt, BigEndian};
 use memmem::{Searcher, TwoWaySearcher};
 
-use super::{MapBlockError, read_string16, write_string16, read_string32,
-	write_string32, vec_with_len};
+use super::*;
 
 
 #[derive(Debug, Clone)]
@@ -63,6 +59,8 @@ impl NodeMetadata {
 
 #[derive(Debug)]
 pub struct NodeMetadataList {
+	// TODO: Switch to BTreeMap or something more stable
+	// TODO: This is just a wrapper struct, switch to a type alias?
 	pub list: HashMap<u16, NodeMetadata>
 }
 
