@@ -6,28 +6,36 @@ use super::Vec3;
 pub struct AreaIterator {
 	min: Vec3,
 	max: Vec3,
-	cur: Vec3
+	pos: Vec3
+}
+
+impl AreaIterator {
+	pub fn new(min: Vec3, max: Vec3) -> Self {
+		Self {min, max, pos: min}
+	}
 }
 
 impl Iterator for AreaIterator {
-	// TODO: Fix this mess.
 	type Item = Vec3;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		self.cur.x += 1;
-		if self.cur.x > self.max.x {
-			self.cur.x = self.min.x;
-			self.cur.y += 1;
-			if self.cur.y > self.max.y {
-				self.cur.y = self.min.y;
-				self.cur.z += 1;
-				if self.cur.z > self.max.z {
-					return None;
+		if self.pos.z > self.max.z {
+			None
+		} else {
+			let last_pos = self.pos;
+
+			self.pos.x += 1;
+			if self.pos.x > self.max.x {
+				self.pos.x = self.min.x;
+				self.pos.y += 1;
+				if self.pos.y > self.max.y {
+					self.pos.y = self.min.y;
+					self.pos.z += 1;
 				}
 			}
-		}
 
-		Some(self.cur)
+			Some(last_pos)
+		}
 	}
 }
 
@@ -74,11 +82,7 @@ impl Area {
 	}
 
 	pub fn iterate(&self) -> AreaIterator {
-		AreaIterator {
-			min: self.min,
-			max: self.max,
-			cur: self.min - Vec3::new(1, 0, 0)
-		}
+		AreaIterator::new(self.min, self.max)
 	}
 
 	pub fn to_contained_block_area(&self) -> Self {
@@ -149,12 +153,12 @@ mod tests {
 
 	#[test]
 	fn test_area_iteration() {
-		let a = Area::new(Vec3::new(-1, -1, -1), Vec3::new(1, 1, 1));
+		let a = Area::new(Vec3::new(0, -1, -2), Vec3::new(5, 7, 11));
 		let mut iter = a.iterate();
 
-		for z in -1 .. 2 {
-			for y in -1 .. 2 {
-				for x in -1 .. 2 {
+		for z in -2..=11 {
+			for y in -1..=7 {
+				for x in 0..=5 {
 					assert_eq!(iter.next(), Some(Vec3::new(x, y, z)));
 				}
 			}
