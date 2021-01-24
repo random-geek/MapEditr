@@ -17,9 +17,13 @@ pub enum ArgType {
 	Offset(bool),
 	Node(bool),
 	NewNode(bool),
+	Item,
+	NewItem,
 	Param2Val(bool),
 	Object(bool),
 	Items,
+	Key,
+	Value,
 }
 
 
@@ -33,9 +37,13 @@ pub struct InstArgs {
 	pub offset: Option<Vec3>,
 	pub node: Option<String>,
 	pub new_node: Option<String>,
+	pub item: Option<String>,
+	pub new_item: Option<String>,
 	pub param2_val: Option<u8>,
 	pub object: Option<String>,
 	pub items: Option<Vec<String>>,
+	pub key: Option<String>,
+	pub value: Option<String>,
 }
 
 
@@ -248,12 +256,7 @@ fn compute_thread(args: InstArgs, status: StatusServer)
 	};
 
 	let func = commands[args.command.as_str()].func;
-	let mut inst = InstBundle {
-		args,
-		status,
-		db,
-		idb
-	};
+	let mut inst = InstBundle {args, status, db, idb};
 	func(&mut inst);
 
 	if inst.db.is_in_transaction() {

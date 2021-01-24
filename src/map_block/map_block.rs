@@ -2,7 +2,6 @@ use super::*;
 
 const MIN_BLOCK_VER: u8 = 25;
 const MAX_BLOCK_VER: u8 = 28;
-
 const BLOCK_BUF_SIZE: usize = 2048;
 
 

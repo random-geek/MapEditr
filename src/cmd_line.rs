@@ -87,6 +87,16 @@ fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 				a
 			}
 		},
+		ArgType::Item =>
+			Arg::with_name("item")
+				.takes_value(true)
+				.required(true)
+				.help(help),
+		ArgType::NewItem =>
+			Arg::with_name("new_item")
+				.takes_value(true)
+				.required(true)
+				.help(help),
 		ArgType::Param2Val(_) =>
 			Arg::with_name("param2_val")
 				.required(true)
@@ -102,7 +112,17 @@ fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 				.long("items")
 				.min_values(0)
 				.max_values(1)
-				.help(help)
+				.help(help),
+		ArgType::Key =>
+			Arg::with_name("key")
+				.takes_value(true)
+				.required(true)
+				.help(help),
+		ArgType::Value =>
+			Arg::with_name("value")
+				.takes_value(true)
+				.required(true)
+				.help(help),
 	}]
 }
 
@@ -157,11 +177,15 @@ fn parse_cmd_line_args() -> anyhow::Result<InstArgs> {
 			.context("Invalid offset value")?,
 		node: sub_matches.value_of("node").map(str::to_string),
 		new_node: sub_matches.value_of("new_node").map(str::to_string),
+		item: sub_matches.value_of("item").map(str::to_string),
+		new_item: sub_matches.value_of("new_item").map(str::to_string),
 		param2_val: sub_matches.value_of("param2_val")
 			.map(|v| v.parse().unwrap()),
 		object: sub_matches.value_of("object").map(str::to_string),
 		items: sub_matches.values_of("items")
 			.map(|v| v.map(str::to_string).collect()),
+		key: sub_matches.value_of("key").map(str::to_string),
+		value: sub_matches.value_of("value").map(str::to_string),
 	})
 }
 

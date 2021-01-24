@@ -1,15 +1,13 @@
 use std::cmp::{min, max};
 
 mod vec3;
-// TODO
-// mod v3f;
 mod area;
 
 pub use vec3::Vec3;
-// pub use v3f::V3f;
 pub use area::Area;
 
 
+// TODO: Should these go in the area impl?
 pub fn area_contains_block(area: &Area, block_pos: Vec3) -> bool {
 	let corner = block_pos * 16;
 	area.min.x <= corner.x && corner.x + 15 <= area.max.x

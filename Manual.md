@@ -164,6 +164,28 @@ generated in the destination map, or the entire selection if an offset is used.
 **Tip:** Overlay will be significantly faster if no offset is used, as
 mapblocks can be copied verbatim.
 
+### replaceininv
+
+Usage: `replaceininv [--deletemeta] [--node <node>] [--p1 x y z] [--p2 x y z] [--invert] <item> <new_item>`
+
+Replace a certain item with another in node inventories. To delete items
+instead of replacing them, use "Empty" (with a capital E) for `replacename`.
+
+Arguments:
+
+- `item`: Name of item to replace
+- `new_item`: Name of new item to replace with
+- `--deletemeta`: Delete metadata of replaced items. If not specified, any item
+metadata will remain unchanged.
+- `--node`: Name of node to to replace in. If not specified, the item will be
+replaced in all node inventories.
+- `--p1, --p2`: Area in which to search for nodes. If not specified, items will
+be replaced across the entire map.
+- `--invert`: Only search for nodes *outside* the given area.
+
+**Tip:** To only delete metadata without replacing the nodes, use the
+`--deletemeta` flag, and make `new_item` the same as `item`.
+
 ### replacenodes
 
 Usage: `replacenodes [--p1 x y z] [--p2 x y z] [--invert] <node> <new_node>`
@@ -181,6 +203,22 @@ Arguments:
 will be replaced across the entire map.
 - `--invert`: Only replace nodes *outside* the given area.
 
+### setmetavar
+
+Usage: `setmetavar [--node <node>] [--p1 x y z] [--p2 x y z] [--invert] <key> <value>`
+
+Set a variable in node metadata. This only works on metadata where the variable
+is already set.
+
+Arguments:
+
+- `key`: Name of variable to set, e.g. `infotext`, `formspec`, etc.
+- `value`: Value to set variable to. This should be a string.
+- `--node`: Name of node to modify. If not specified, the variable will be
+set for all nodes that have it.
+- `--p1, --p2`: Area in which to modify nodes.
+- `--invert`: Only modify nodes *outside* the given area.
+
 ### setparam2
 
 Usage: `setparam2 [--node <node>] [--p1 x y z] [--p2 x y z] [--invert] <param2_val>`
@@ -192,8 +230,7 @@ Arguments:
 - `param2_val`: Param2 value to set, between 0 and 255.
 - `--node`: Name of node to modify. If not specified, the param2 values of
 all nodes will be set.
-- `--p1, --p2`: Area in which to set param2. Required if `--node` is
-not specified.
+- `--p1, --p2`: Area in which to set param2.
 - `--invert`: Only set param2 *outside* the given area.
 
 ### vacuum
@@ -210,42 +247,3 @@ or deleted.
 **Note:** Because data is copied into another file, vacuum could require
 as much free disk space as is already occupied by the map. For example, if
 map.sqlite is 10 GB, make sure you have **at least 10 GB** of free space!
-
-
-
-
-
-
-# Danger Zone!
-
-### `setmetavar`
-
-**Usage:** `setmetavar [--searchnode <searchnode>] [--p1 x y z] [--p2 x y z] [--invert] <metakey> <metavalue>`
-
-Set a variable in node metadata. This only works on metadata where the variable is already set.
-
-Arguments:
-
-- **`metakey`**: Name of variable to set, e.g. `infotext`, `formspec`, etc.
-- **`metavalue`**: Value to set variable to. This should be a string.
-- **`--searchnode`**: Name of node to search for. If not specified, the variable will be set for all nodes that have it.
-- **`--p1, --p2`**: Area in which to search. Required if `searchnode` is not specified.
-- **`--invert`**: Only search for nodes *outside* the given area.
-
-### `replaceininv`
-
-**Usage:** ` replaceininv [--deletemeta] [--searchnode <searchnode>] [--p1 x y z] [--p2 x y z] [--invert] <searchitem> <replaceitem>`
-
-Replace a certain item with another in node inventories.
-To delete items instead of replacing them, use "Empty" (with a capital E) for `replacename`.
-
-Arguments:
-
-- **`searchitem`**: Item to search for in node inventories.
-- **`replaceitem`**: Item to replace with in node inventories.
-- **`--deletemeta`**: Delete metadata of replaced items. If not specified, any item metadata will remain unchanged.
-- **`--searchnode`**: Name of node to to replace in. If not specified, the item will be replaced in all node inventories.
-- **`--p1, --p2`**: Area in which to search for nodes. If not specified, items will be replaced across the entire map.
-- **`--invert`**: Only search for nodes *outside* the given area.
-
-**Tip:** To only delete metadata without replacing the nodes, use the `--deletemeta` flag, and make `replaceitem` the same as `searchitem`.

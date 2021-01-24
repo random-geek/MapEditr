@@ -149,21 +149,30 @@ mod tests {
 			Area::from_unsorted(Vec3::new(10, 80, 42), Vec3::new(10, -50, 99)),
 			Area::new(Vec3::new(10, -50, 42), Vec3::new(10, 80, 99))
 		);
+
+		assert_eq!(
+			Area::new(Vec3::new(0, 0, 0), Vec3::new(0, 0, 0)).volume(), 1);
+		assert_eq!(
+			Area::new(Vec3::new(0, -9, 14), Vec3::new(19, 0, 17)).volume(),
+			800);
 	}
 
 	#[test]
 	fn test_area_iteration() {
-		let a = Area::new(Vec3::new(0, -1, -2), Vec3::new(5, 7, 11));
-		let mut iter = a.iterate();
-
-		for z in -2..=11 {
-			for y in -1..=7 {
-				for x in 0..=5 {
-					assert_eq!(iter.next(), Some(Vec3::new(x, y, z)));
+		fn iter_area(a: Area) {
+			let mut iter = a.iterate();
+			for z in a.min.z..=a.max.z {
+				for y in a.min.y..=a.max.y {
+					for x in a.min.x..=a.max.x {
+						assert_eq!(iter.next(), Some(Vec3::new(x, y, z)))
+					}
 				}
 			}
+			assert_eq!(iter.next(), None);
 		}
 
-		assert_eq!(iter.next(), None);
+		iter_area(Area::new(Vec3::new(-1, -1, -1), Vec3::new(-1, -1, -1)));
+		iter_area(Area::new(Vec3::new(10, -99, 11), Vec3::new(10, -99, 12)));
+		iter_area(Area::new(Vec3::new(0, -1, -2), Vec3::new(5, 7, 11)));
 	}
 }
