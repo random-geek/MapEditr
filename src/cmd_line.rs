@@ -226,6 +226,7 @@ fn print_progress(done: usize, total: usize, real_start: Instant,
 }
 
 
+#[inline]
 fn print_log(log_type: LogType, msg: String) {
 	eprintln!("{}: {}", log_type, msg)
 }
@@ -247,11 +248,11 @@ pub fn run_cmd_line() {
 	const TICK: Duration = Duration::from_millis(25);
 	const UPDATE_INTERVAL: Duration = Duration::from_millis(250);
 
-	let mut querying_start = Instant::now();
-	let mut editing_start = Instant::now();
 	let mut last_update = Instant::now();
+	let mut querying_start = last_update;
+	let mut editing_start = last_update;
 	let mut cur_state = InstState::Ignore;
-	let mut last_printed = InstState::Ignore;
+	let mut need_newline = false;
 
 	loop { /* Main command-line logging loop */
 		let now = Instant::now();
@@ -279,10 +280,10 @@ pub fn run_cmd_line() {
 					cur_state = new_state;
 				},
 				InstEvent::Log(log_type, msg) => {
-					if last_printed != InstState::Ignore {
+					if need_newline {
 						eprintln!();
+						need_newline = false;
 					}
-					last_printed = InstState::Ignore;
 					print_log(log_type, msg);
 				}
 			},
@@ -301,25 +302,25 @@ pub fn run_cmd_line() {
 		{
 			eprint!("\rQuerying map blocks... {} found.",
 				status.get().blocks_total);
+			std::io::stdout().flush().unwrap();
 			last_update = now;
-			last_printed = InstState::Querying;
+			need_newline = true;
 		}
 		else if forced_update == InstState::Editing
 			|| (cur_state == InstState::Editing && timed_update_ready)
 		{
-			if last_printed == InstState::Querying {
-				eprintln!();
-			}
-			last_printed = InstState::Editing;
 			let s = status.get();
 			print_progress(s.blocks_done, s.blocks_total,
 				querying_start, editing_start);
 			last_update = now;
+			need_newline = true;
 		}
-	}
 
-	if last_printed != InstState::Ignore {
-		eprintln!();
+		// Print a newline after the last querying/editing message.
+		if need_newline && cur_state == InstState::Ignore {
+			eprintln!();
+			need_newline = false;
+		}
 	}
 
 	let _ = handle.join();
