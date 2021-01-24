@@ -107,7 +107,7 @@ pub fn get_command() -> Command {
 		args: vec![
 			(ArgType::Area(false), "Area in which to delete objects"),
 			(ArgType::Invert, "Delete all objects outside the area"),
-			(ArgType::Object(false),
+			(ArgType::Object,
 				"Name of object to delete. If not specified, all objects will \
 				be deleted"),
 			(ArgType::Items,

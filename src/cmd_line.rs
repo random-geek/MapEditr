@@ -5,7 +5,7 @@ use clap::{App, Arg, SubCommand, AppSettings, crate_version, crate_authors};
 use anyhow::Context;
 
 use crate::spatial::{Vec3, Area};
-use crate::instance::{ArgType, InstArgs};
+use crate::instance::{LogType, ArgType, InstArgs};
 use crate::commands::{get_commands};
 use crate::utils::fmt_duration;
 
@@ -49,7 +49,6 @@ fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 		];
 	}
 	vec![match arg {
-		// TODO: Remove unused conditions here.
 		ArgType::InputMapPath =>
 			Arg::with_name("input_map")
 				.required(true)
@@ -77,16 +76,11 @@ fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 				a
 			}
 		},
-		ArgType::NewNode(req) => {
-			let a = Arg::with_name("new_node")
-				.required(req)
-				.help(help);
-			if !req {
-				a.long("newnode").takes_value(true)
-			} else {
-				a
-			}
-		},
+		ArgType::NewNode =>
+			Arg::with_name("new_node")
+				.takes_value(true)
+				.required(true)
+				.help(help),
 		ArgType::Item =>
 			Arg::with_name("item")
 				.takes_value(true)
@@ -97,15 +91,14 @@ fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 				.takes_value(true)
 				.required(true)
 				.help(help),
-		ArgType::Param2Val(_) =>
+		ArgType::Param2Val =>
 			Arg::with_name("param2_val")
 				.required(true)
 				.help(help),
-		ArgType::Object(req) =>
+		ArgType::Object =>
 			Arg::with_name("object")
 				.long("obj")
 				.takes_value(true)
-				.required(req)
 				.help(help),
 		ArgType::Items =>
 			Arg::with_name("items")
@@ -180,7 +173,8 @@ fn parse_cmd_line_args() -> anyhow::Result<InstArgs> {
 		item: sub_matches.value_of("item").map(str::to_string),
 		new_item: sub_matches.value_of("new_item").map(str::to_string),
 		param2_val: sub_matches.value_of("param2_val")
-			.map(|v| v.parse().unwrap()),
+			.map(|val| val.parse().context("Invalid param2 value."))
+			.transpose().context("Invalid param2 value.")?,
 		object: sub_matches.value_of("object").map(str::to_string),
 		items: sub_matches.values_of("items")
 			.map(|v| v.map(str::to_string).collect()),
@@ -232,11 +226,22 @@ fn print_progress(done: usize, total: usize, real_start: Instant,
 }
 
 
+fn print_log(log_type: LogType, msg: String) {
+	eprintln!("{}: {}", log_type, msg)
+}
+
+
 pub fn run_cmd_line() {
 	use std::sync::mpsc;
 	use crate::instance::{InstState, InstEvent, spawn_compute_thread};
 
-	let args = parse_cmd_line_args().unwrap();
+	let args = match parse_cmd_line_args() {
+		Ok(a) => a,
+		Err(e) => {
+			print_log(LogType::Error, e.to_string());
+			return;
+		}
+	};
 	let (handle, status) = spawn_compute_thread(args);
 
 	const TICK: Duration = Duration::from_millis(25);
@@ -278,7 +283,7 @@ pub fn run_cmd_line() {
 						eprintln!();
 					}
 					last_printed = InstState::Ignore;
-					eprintln!("{}: {}", log_type, msg);
+					print_log(log_type, msg);
 				}
 			},
 			Err(err) => {
@@ -314,7 +319,7 @@ pub fn run_cmd_line() {
 	}
 
 	if last_printed != InstState::Ignore {
-		eprintln!("");
+		eprintln!();
 	}
 
 	let _ = handle.join();

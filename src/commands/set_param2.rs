@@ -115,7 +115,7 @@ pub fn get_command() -> Command {
 		args: vec![
 			(ArgType::Area(false), "Area in which to set param2 values"),
 			(ArgType::Node(false), "Node to set param2 values of"),
-			(ArgType::Param2Val(true), "New param2 value")
+			(ArgType::Param2Val, "New param2 value")
 		],
 		help: "Set param2 values of an area or node."
 	}

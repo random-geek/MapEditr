@@ -72,7 +72,7 @@ pub fn get_command() -> Command {
 		verify_args: None,
 		args: vec![
 			(ArgType::Area(true), "Area to fill"),
-			(ArgType::NewNode(true), "Node to fill area with")
+			(ArgType::NewNode, "Name of node to fill area with")
 		],
 		help: "Fill the entire area with one node."
 	}

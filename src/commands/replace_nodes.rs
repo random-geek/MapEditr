@@ -162,8 +162,8 @@ pub fn get_command() -> Command {
 		func: replace_nodes,
 		verify_args: Some(verify_args),
 		args: vec![
-			(ArgType::Node(true), "Node to replace"),
-			(ArgType::NewNode(true), "New node to replace with"),
+			(ArgType::Node(true), "Name of node to replace"),
+			(ArgType::NewNode, "Name of node to replace with"),
 			(ArgType::Area(false), "Area in which to replace nodes"),
 			(ArgType::Invert, "Replace nodes outside the given area")
 		],
