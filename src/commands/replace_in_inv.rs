@@ -6,29 +6,36 @@ use crate::instance::{ArgType, InstBundle};
 use crate::map_block::{MapBlock, NodeMetadataList};
 use crate::utils::{query_keys, fmt_big_num};
 
+const NEWLINE: u8 = b'\n';
+const SPACE: u8 = b' ';
+
 
 fn do_replace(inv: &mut Vec<u8>, item: &[u8], new_item: &[u8], del_meta: bool)
 	-> u64
 {
-	const NEWLINE: u8 = b'\n';
-	const SPACE: u8 = b' ';
-
-	let mut new_inv = Vec::new();
+	let delete = new_item == b"Empty";
+	let mut new_inv = Vec::with_capacity(inv.len());
 	let mut mods = 0;
-	for line in inv.split(|&x| x == NEWLINE) {
-		let parts: Vec<&[u8]> = line.splitn(4, |&x| x == SPACE).collect();
 
-		if parts[0] == b"Item" && parts[1] == item {
-			new_inv.extend_from_slice(b"Item ");
-			new_inv.extend_from_slice(new_item);
-			if let Some(count) = parts.get(2) {
-				new_inv.push(SPACE);
-				new_inv.extend_from_slice(count);
-			}
-			if !del_meta {
-				if let Some(meta) = parts.get(3) {
+	for line in inv.split(|&x| x == NEWLINE) {
+		let mut parts = line.splitn(4, |&x| x == SPACE);
+
+		if parts.next() == Some(b"Item") && parts.next() == Some(item) {
+			if delete {
+				new_inv.extend_from_slice(b"Empty");
+			} else {
+				new_inv.extend_from_slice(b"Item ");
+				new_inv.extend_from_slice(new_item);
+
+				if let Some(count) = parts.next() {
 					new_inv.push(SPACE);
-					new_inv.extend_from_slice(meta);
+					new_inv.extend_from_slice(count);
+				}
+				if !del_meta {
+					if let Some(meta) = parts.next() {
+						new_inv.push(SPACE);
+						new_inv.extend_from_slice(meta);
+					}
 				}
 			}
 			mods += 1;
@@ -38,7 +45,9 @@ fn do_replace(inv: &mut Vec<u8>, item: &[u8], new_item: &[u8], del_meta: bool)
 		new_inv.push(NEWLINE);
 	}
 
-	*inv = new_inv;
+	if mods > 0 {
+		*inv = new_inv;
+	}
 	mods
 }
 
@@ -102,7 +111,7 @@ fn replace_in_inv(inst: &mut InstBundle) {
 	}
 
 	inst.status.end_editing();
-	inst.status.log_info(format!("Replaced {} item stacks in {} nodes.",
+	inst.status.log_info(format!("Replaced {} itemstacks in {} nodes.",
 		fmt_big_num(item_mods), fmt_big_num(node_mods)));
 }
 
