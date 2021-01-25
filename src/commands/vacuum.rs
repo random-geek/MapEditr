@@ -9,6 +9,7 @@ fn vacuum(inst: &mut InstBundle) {
 	inst.status.log_info("Starting vacuum.");
 	let start = Instant::now();
 
+	// TODO: Show simple timer in main thread.
 	match inst.db.vacuum() {
 		Ok(_) => {
 			let time = fmt_duration(start.elapsed());

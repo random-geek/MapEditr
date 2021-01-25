@@ -11,6 +11,7 @@ use crate::spatial::{Area, Vec3};
 pub fn query_keys(
 	db: &mut MapDatabase,
 	status: &StatusServer,
+	// TODO: Allow multiple names for setmetavar and replaceininv.
 	search_str: Option<&[u8]>,
 	area: Option<Area>,
 	invert: bool,

@@ -310,6 +310,7 @@ pub fn run_cmd_line() {
 			|| (cur_state == InstState::Editing && timed_update_ready)
 		{
 			let s = status.get();
+			// TODO: Update duration format? e.g. 1m 42s remaining
 			print_progress(s.blocks_done, s.blocks_total,
 				querying_start, editing_start);
 			last_update = now;

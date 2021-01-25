@@ -9,6 +9,9 @@ use crate::utils::query_keys;
 use crate::time_keeper::TimeKeeper;
 
 
+// TODO: This and overlay--cache mapblocks in deserialized form.
+
+
 fn clone(inst: &mut InstBundle) {
 	let src_area = inst.args.area.unwrap();
 	let offset = inst.args.offset.unwrap();

@@ -81,6 +81,7 @@ impl MapBlock {
 	}
 
 	pub fn serialize(&self) -> Vec<u8> {
+		// TODO: Use a bigger buffer (unsafe?) to reduce heap allocations.
 		let mut buf = Vec::with_capacity(BLOCK_BUF_SIZE);
 		let mut data = Cursor::new(buf);
 
