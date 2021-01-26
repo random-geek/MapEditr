@@ -58,6 +58,7 @@ pub enum InstState {
 
 #[derive(Clone)]
 pub struct InstStatus {
+	pub show_progress: bool,
 	pub blocks_total: usize,
 	pub blocks_done: usize,
 	pub state: InstState
@@ -66,6 +67,7 @@ pub struct InstStatus {
 impl InstStatus {
 	fn new() -> Self {
 		Self {
+			show_progress: true,
 			blocks_total: 0,
 			blocks_done: 0,
 			state: InstState::Ignore
@@ -113,6 +115,10 @@ impl StatusServer {
 
 	pub fn inc_done(&self) {
 		self.status.lock().unwrap().blocks_done += 1;
+	}
+
+	pub fn set_show_progress(&self, sp: bool) {
+		self.status.lock().unwrap().show_progress = sp;
 	}
 
 	pub fn begin_editing(&self) {

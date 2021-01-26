@@ -12,7 +12,7 @@ pub fn query_keys(
 	db: &mut MapDatabase,
 	status: &StatusServer,
 	// TODO: Allow multiple names for setmetavar and replaceininv.
-	search_str: Option<&[u8]>,
+	search_strs: Vec<&Vec<u8>>,
 	area: Option<Area>,
 	invert: bool,
 	include_partial: bool
@@ -21,15 +21,15 @@ pub fn query_keys(
 
 	// Prepend 16-bit search string length to reduce false positives.
 	// This will break if the name-ID map format changes.
-	let search_bytes = search_str.map(|s| {
+	let string16s: Vec<Vec<u8>> = search_strs.iter().map(|&s| {
 		let mut res = Vec::new();
 		res.write_u16::<BigEndian>(s.len() as u16).unwrap();
 		res.extend(s);
 		res
-	});
-	let data_searcher = search_bytes.as_ref().map(|b| {
+	}).collect();
+	let data_searchers: Vec<TwoWaySearcher> = string16s.iter().map(|b| {
 		TwoWaySearcher::new(b)
-	});
+	}).collect();
 	let mut keys = Vec::new();
 
 	// Area of included block positions.
@@ -49,8 +49,9 @@ pub fn query_keys(
 				continue;
 			}
 		}
-		if let Some(s) = &data_searcher {
-			if s.search_in(&data).is_none() {
+		if !data_searchers.is_empty() {
+			// Data must match at least one search string.
+			if data_searchers.iter().any(|s| s.search_in(&data).is_some()) {
 				continue;
 			}
 		}
@@ -91,13 +92,13 @@ pub fn fmt_duration(dur: Duration) -> String {
 
 pub fn fmt_big_num(num: u64) -> String {
 	let f_num = num as f32;
-	let abbrevs = vec![
-		("T".to_string(), 1_000_000_000_000.),
-		("B".to_string(), 1_000_000_000.),
-		("M".to_string(), 1_000_000.),
-		("k".to_string(), 1_000.)
+	const ABBREVS: [(&str, f32); 4] = [
+		("T", 1_000_000_000_000.),
+		("B", 1_000_000_000.),
+		("M", 1_000_000.),
+		("k", 1_000.)
 	];
-	for (suffix, unit) in abbrevs {
+	for &(suffix, unit) in &ABBREVS {
 		if f_num >= unit {
 			let mantissa = f_num / unit;
 			let place_vals =
@@ -108,4 +109,29 @@ pub fn fmt_big_num(num: u64) -> String {
 		}
 	}
 	format!("{}", f_num.round())
+}
+
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn test_nums() {
+		let pairs = [
+			(0, "0"),
+			(3, "3"),
+			(42, "42"),
+			(999, "999"),
+			(1_000, "1.00k"),
+			(33_870, "33.9k"),
+			(470_999, "471k"),
+			(555_678_000, "556M"),
+			(1_672_234_000, "1.67B"),
+			(77_864_672_234_000, "77.9T"),
+		];
+		for pair in &pairs {
+			assert_eq!(fmt_big_num(pair.0), pair.1.to_string());
+		}
+	}
 }

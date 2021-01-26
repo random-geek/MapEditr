@@ -13,7 +13,7 @@ fn set_meta_var(inst: &mut InstBundle) {
 	let node = inst.args.node.as_ref().map(|s| s.as_bytes().to_owned());
 
 	let keys = query_keys(&mut inst.db, &mut inst.status,
-		node.as_deref(), inst.args.area, inst.args.invert, true);
+		node.iter().collect(), inst.args.area, inst.args.invert, true);
 
 	inst.status.begin_editing();
 	let mut count: u64 = 0;

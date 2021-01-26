@@ -46,7 +46,7 @@ fn set_param2(inst: &mut InstBundle) {
 	let node = inst.args.node.as_ref().map(|s| s.as_bytes().to_owned());
 
 	let keys = query_keys(&mut inst.db, &mut inst.status,
-		node.as_deref(), inst.args.area, false, true);
+		node.iter().collect(), inst.args.area, false, true);
 
 	inst.status.begin_editing();
 

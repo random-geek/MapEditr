@@ -17,7 +17,7 @@ fn clone(inst: &mut InstBundle) {
 	let offset = inst.args.offset.unwrap();
 	let dst_area = src_area + offset;
 	let mut keys = query_keys(&mut inst.db, &inst.status,
-		None, Some(dst_area), false, true);
+		Vec::new(), Some(dst_area), false, true);
 
 	// Sort blocks according to offset such that we don't read blocks that
 	// have already been written.

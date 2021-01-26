@@ -26,7 +26,7 @@ fn fill(inst: &mut InstBundle) {
 	let node = inst.args.new_node.as_ref().unwrap().as_bytes().to_owned();
 
 	let keys = query_keys(&mut inst.db, &mut inst.status,
-		None, Some(area), false, true);
+		Vec::new(), Some(area), false, true);
 
 	inst.status.begin_editing();
 

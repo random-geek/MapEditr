@@ -30,8 +30,8 @@ fn overlay_no_offset(inst: &mut InstBundle) {
 	let invert = inst.args.invert;
 
 	// Get keys from input database.
-	let keys = query_keys(&mut idb, &inst.status, None,
-		inst.args.area, invert, true);
+	let keys = query_keys(&mut idb, &inst.status,
+		Vec::new(), inst.args.area, invert, true);
 	inst.status.begin_editing();
 
 	for key in keys {
@@ -106,8 +106,8 @@ fn overlay_with_offset(inst: &mut InstBundle) {
 	let idb = inst.idb.as_mut().unwrap();
 
 	// Get keys from output database.
-	let keys = query_keys(&mut inst.db, &inst.status, None,
-		dst_area, inst.args.invert, true);
+	let keys = query_keys(&mut inst.db, &inst.status,
+		Vec::new(), dst_area, inst.args.invert, true);
 	inst.status.begin_editing();
 
 	for key in keys {

@@ -113,10 +113,10 @@ fn do_replace(
 
 
 fn replace_nodes(inst: &mut InstBundle) {
-	let node = inst.args.node.as_ref().unwrap().as_bytes();
-	let new_node = inst.args.new_node.as_ref().unwrap().as_bytes();
+	let node = inst.args.node.as_ref().unwrap().as_bytes().to_owned();
+	let new_node = inst.args.new_node.as_ref().unwrap().as_bytes().to_owned();
 	let keys = query_keys(&mut inst.db, &inst.status,
-		Some(node), inst.args.area, inst.args.invert, true);
+		vec![&node], inst.args.area, inst.args.invert, true);
 
 	inst.status.begin_editing();
 	let mut count = 0;

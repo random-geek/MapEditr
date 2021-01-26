@@ -1,19 +1,19 @@
 use super::Command;
 
-use std::time::Instant;
 use crate::instance::InstBundle;
-use crate::utils::fmt_duration;
 
 
 fn vacuum(inst: &mut InstBundle) {
 	inst.status.log_info("Starting vacuum.");
-	let start = Instant::now();
 
-	// TODO: Show simple timer in main thread.
-	match inst.db.vacuum() {
+	inst.status.set_show_progress(false); // No ETA for vacuum.
+	inst.status.begin_editing();
+	let res = inst.db.vacuum();
+	inst.status.end_editing();
+
+	match res {
 		Ok(_) => {
-			let time = fmt_duration(start.elapsed());
-			inst.status.log_info(format!("Completed vacuum in {}.", time));
+			inst.status.log_info(format!("Completed vacuum."));
 		},
 		Err(e) => inst.status.log_error(format!("Vacuum failed: {}.", e))
 	}
@@ -24,7 +24,7 @@ pub fn get_command() -> Command {
 	Command {
 		func: vacuum,
 		verify_args: None,
-		args: vec![],
-		help: "Rebuild map database to reduce its size"
+		args: Vec::new(),
+		help: "Rebuild map database to reduce its size."
 	}
 }

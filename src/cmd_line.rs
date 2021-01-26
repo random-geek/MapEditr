@@ -184,49 +184,52 @@ fn parse_cmd_line_args() -> anyhow::Result<InstArgs> {
 }
 
 
-fn print_progress(done: usize, total: usize, real_start: Instant,
-	eta_start: Instant)
+fn print_editing_status(done: usize, total: usize, real_start: Instant,
+	eta_start: Instant, show_progress: bool)
 {
-	let progress = match total {
-		0 => 0.0,
-		_ => done as f32 / total as f32
-	};
-
 	let now = Instant::now();
 	let real_elapsed = now.duration_since(real_start);
-	let eta_elapsed = now.duration_since(eta_start);
 
-	let remaining = if progress >= 0.1 {
-		Some(Duration::from_secs_f32(
-			eta_elapsed.as_secs_f32() / progress * (1.0 - progress)
-		))
-	} else {
-		None
-	};
+	if show_progress {
+		let eta_elapsed = now.duration_since(eta_start);
+		let progress = match total {
+			0 => 0.,
+			_ => done as f32 / total as f32
+		};
 
-	const TOTAL_BARS: usize = 25;
-	let num_bars = (progress * TOTAL_BARS as f32) as usize;
-	let bars = "=".repeat(num_bars);
-
-	eprint!(
-		"\r[{bars:<total_bars$}] {progress:.1}% | {elapsed} elapsed \
-			| {remaining} remaining",
-		bars=bars,
-		total_bars=TOTAL_BARS,
-		progress=progress * 100.0,
-		elapsed=fmt_duration(real_elapsed),
-		remaining=if let Some(d) = remaining {
-			fmt_duration(d)
+		let remaining = if progress >= 0.1 {
+			Some(Duration::from_secs_f32(
+				eta_elapsed.as_secs_f32() / progress * (1. - progress)
+			))
 		} else {
-			String::from("--:--")
-		}
-	);
+			None
+		};
+
+		const TOTAL_BARS: usize = 25;
+		let num_bars = (progress * TOTAL_BARS as f32) as usize;
+		let bars = "=".repeat(num_bars);
+
+		eprint!(
+			"\r[{bars:<total_bars$}] {progress:.1}% | {elapsed} elapsed \
+				| {remaining} remaining",
+			bars=bars,
+			total_bars=TOTAL_BARS,
+			progress=progress * 100.,
+			elapsed=fmt_duration(real_elapsed),
+			remaining=if let Some(d) = remaining {
+				fmt_duration(d)
+			} else {
+				String::from("--:--")
+			}
+		);
+	} else {
+		eprint!("\rProcessing... {} elapsed", fmt_duration(real_elapsed));
+	}
 
 	std::io::stdout().flush().unwrap();
 }
 
 
-#[inline]
 fn print_log(log_type: LogType, msg: String) {
 	eprintln!("{}: {}", log_type, msg)
 }
@@ -246,7 +249,7 @@ pub fn run_cmd_line() {
 	let (handle, status) = spawn_compute_thread(args);
 
 	const TICK: Duration = Duration::from_millis(25);
-	const UPDATE_INTERVAL: Duration = Duration::from_millis(250);
+	const UPDATE_INTERVAL: Duration = Duration::from_millis(500);
 
 	let mut last_update = Instant::now();
 	let mut querying_start = last_update;
@@ -311,8 +314,8 @@ pub fn run_cmd_line() {
 		{
 			let s = status.get();
 			// TODO: Update duration format? e.g. 1m 42s remaining
-			print_progress(s.blocks_done, s.blocks_total,
-				querying_start, editing_start);
+			print_editing_status(s.blocks_done, s.blocks_total,
+				querying_start, editing_start, s.show_progress);
 			last_update = now;
 			need_newline = true;
 		}
