@@ -11,8 +11,7 @@ use crate::spatial::{Area, Vec3};
 pub fn query_keys(
 	db: &mut MapDatabase,
 	status: &StatusServer,
-	// TODO: Allow multiple names for setmetavar and replaceininv.
-	search_strs: Vec<&Vec<u8>>,
+	search_strs: &[Vec<u8>],
 	area: Option<Area>,
 	invert: bool,
 	include_partial: bool
@@ -21,7 +20,7 @@ pub fn query_keys(
 
 	// Prepend 16-bit search string length to reduce false positives.
 	// This will break if the name-ID map format changes.
-	let string16s: Vec<Vec<u8>> = search_strs.iter().map(|&s| {
+	let string16s: Vec<Vec<u8>> = search_strs.iter().map(|s| {
 		let mut res = Vec::new();
 		res.write_u16::<BigEndian>(s.len() as u16).unwrap();
 		res.extend(s);
@@ -49,11 +48,10 @@ pub fn query_keys(
 				continue;
 			}
 		}
-		if !data_searchers.is_empty() {
-			// Data must match at least one search string.
-			if data_searchers.iter().any(|s| s.search_in(&data).is_some()) {
-				continue;
-			}
+		if !data_searchers.is_empty()
+			&& !data_searchers.iter().any(|s| s.search_in(&data).is_some())
+		{ // Data must match at least one search string.
+			continue;
 		}
 		keys.push(key);
 
@@ -66,6 +64,19 @@ pub fn query_keys(
 	status.set_total(keys.len());
 	status.set_state(InstState::Ignore);
 	keys
+}
+
+
+pub fn to_bytes(s: &String) -> Vec<u8> {
+	s.as_bytes().to_vec()
+}
+
+
+pub fn to_slice(opt: &Option<Vec<u8>>) -> &[Vec<u8>] {
+	match opt {
+		Some(x) => std::slice::from_ref(x),
+		None => &[]
+	}
 }
 
 

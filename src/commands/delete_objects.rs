@@ -4,7 +4,7 @@ use crate::unwrap_or;
 use crate::spatial::Area;
 use crate::instance::{ArgType, InstBundle};
 use crate::map_block::{MapBlock, StaticObject, LuaEntityData};
-use crate::utils::{query_keys, fmt_big_num};
+use crate::utils::{query_keys, to_bytes, to_slice, fmt_big_num};
 
 use memmem::{Searcher, TwoWaySearcher};
 
@@ -54,19 +54,18 @@ fn delete_objects(inst: &mut InstBundle) {
 	let search_obj = if inst.args.items.is_some() {
 		Some(ITEM_ENT_NAME.to_owned())
 	} else {
-		inst.args.object.as_ref().map(|s| s.as_bytes().to_owned())
+		inst.args.object.as_ref().map(to_bytes)
 	};
 
 	// search_item will be Some if (1) item search is enabled and (2) an item
 	// is specified.
-	let search_item = inst.args.items.as_ref()
-		.and_then(|items| items.get(0))
-		.map(|s| s.as_bytes().to_owned());
+	let search_item = inst.args.items.as_ref().and_then(|items| items.get(0))
+		.map(to_bytes);
 	let item_searcher = search_item.as_ref()
 		.map(|s| TwoWaySearcher::new(s));
 
 	let keys = query_keys(&mut inst.db, &mut inst.status,
-		search_obj.iter().collect(), inst.args.area, inst.args.invert, true);
+		&to_slice(&search_obj), inst.args.area, inst.args.invert, true);
 
 	inst.status.begin_editing();
 	let mut count: u64 = 0;

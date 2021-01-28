@@ -4,7 +4,7 @@ use crate::spatial::{Vec3, Area, area_rel_block_overlap, area_contains_block};
 use crate::instance::{ArgType, InstBundle};
 use crate::map_block::{MapBlock};
 use crate::block_utils::clean_name_id_map;
-use crate::utils::{query_keys, fmt_big_num};
+use crate::utils::{query_keys, to_bytes, fmt_big_num};
 
 
 fn fill_area(block: &mut MapBlock, area: Area, id: u16) {
@@ -23,10 +23,10 @@ fn fill_area(block: &mut MapBlock, area: Area, id: u16) {
 
 fn fill(inst: &mut InstBundle) {
 	let area = inst.args.area.unwrap();
-	let node = inst.args.new_node.as_ref().unwrap().as_bytes().to_owned();
+	let node = to_bytes(inst.args.new_node.as_ref().unwrap());
 
 	let keys = query_keys(&mut inst.db, &mut inst.status,
-		Vec::new(), Some(area), false, true);
+		&[], Some(area), false, true);
 
 	inst.status.begin_editing();
 

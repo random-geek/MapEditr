@@ -48,6 +48,7 @@ fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 				.help(help)
 		];
 	}
+	// TODO: Help is redundant.
 	vec![match arg {
 		ArgType::InputMapPath =>
 			Arg::with_name("input_map")
@@ -76,6 +77,11 @@ fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 				a
 			}
 		},
+		ArgType::Nodes =>
+			Arg::with_name("nodes")
+				.long("nodes")
+				.min_values(1)
+				.help(help),
 		ArgType::NewNode =>
 			Arg::with_name("new_node")
 				.takes_value(true)
@@ -169,6 +175,8 @@ fn parse_cmd_line_args() -> anyhow::Result<InstArgs> {
 		offset: sub_matches.values_of("offset").map(arg_to_pos).transpose()
 			.context("Invalid offset value")?,
 		node: sub_matches.value_of("node").map(str::to_string),
+		nodes: sub_matches.values_of("nodes").iter_mut().flatten()
+			.map(str::to_string).collect(),
 		new_node: sub_matches.value_of("new_node").map(str::to_string),
 		item: sub_matches.value_of("item").map(str::to_string),
 		new_item: sub_matches.value_of("new_item").map(str::to_string),

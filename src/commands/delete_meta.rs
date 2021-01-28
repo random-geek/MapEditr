@@ -4,14 +4,14 @@ use crate::unwrap_or;
 use crate::spatial::Vec3;
 use crate::instance::{ArgType, InstBundle};
 use crate::map_block::{MapBlock, NodeMetadataList};
-use crate::utils::{query_keys, fmt_big_num};
+use crate::utils::{query_keys, to_bytes, to_slice, fmt_big_num};
 
 
 fn delete_metadata(inst: &mut InstBundle) {
-	let node = inst.args.node.as_ref().map(|s| s.as_bytes().to_owned());
+	let node = inst.args.node.as_ref().map(to_bytes);
 
 	let keys = query_keys(&mut inst.db, &mut inst.status,
-		node.iter().collect(), inst.args.area, inst.args.invert, true);
+		&to_slice(&node), inst.args.area, inst.args.invert, true);
 
 	inst.status.begin_editing();
 	let mut count: u64 = 0;

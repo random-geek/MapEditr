@@ -4,16 +4,16 @@ use crate::unwrap_or;
 use crate::spatial::Vec3;
 use crate::instance::{ArgType, InstBundle};
 use crate::map_block::{MapBlock, NodeMetadataList};
-use crate::utils::{query_keys, fmt_big_num};
+use crate::utils::{query_keys, to_bytes, fmt_big_num};
 
 
 fn set_meta_var(inst: &mut InstBundle) {
-	let key = inst.args.key.as_ref().unwrap().as_bytes().to_owned();
-	let value = inst.args.value.as_ref().unwrap().as_bytes().to_owned();
-	let node = inst.args.node.as_ref().map(|s| s.as_bytes().to_owned());
+	let key = to_bytes(inst.args.key.as_ref().unwrap());
+	let value = to_bytes(inst.args.value.as_ref().unwrap());
+	let nodes: Vec<_> = inst.args.nodes.iter().map(to_bytes).collect();
 
 	let keys = query_keys(&mut inst.db, &mut inst.status,
-		node.iter().collect(), inst.args.area, inst.args.invert, true);
+		&nodes, inst.args.area, inst.args.invert, true);
 
 	inst.status.begin_editing();
 	let mut count: u64 = 0;
@@ -24,9 +24,10 @@ fn set_meta_var(inst: &mut InstBundle) {
 		let mut block = unwrap_or!(MapBlock::deserialize(&data), continue);
 
 		let node_data = block.node_data.get_ref();
-		let node_id = node.as_deref().and_then(|n| block.nimap.get_id(n));
-		if node.is_some() && node_id.is_none() {
-			continue; // Block doesn't contain the required node.
+		let node_ids: Vec<_> = nodes.iter()
+			.filter_map(|n| block.nimap.get_id(n)).collect();
+		if !nodes.is_empty() && node_ids.is_empty() {
+			continue; // Block doesn't contain any of the required nodes.
 		}
 
 		let mut meta = unwrap_or!(
@@ -44,10 +45,10 @@ fn set_meta_var(inst: &mut InstBundle) {
 					continue;
 				}
 			}
-			if let Some(id) = node_id {
-				if node_data.nodes[idx as usize] != id {
-					continue;
-				}
+			if !node_ids.is_empty()
+				&& !node_ids.contains(&node_data.nodes[idx as usize])
+			{
+				continue;
 			}
 
 			if let Some(val) = data.vars.get_mut(&key) {
@@ -76,11 +77,12 @@ pub fn get_command() -> Command {
 		args: vec![
 			(ArgType::Key, "Name of key to set in metadata"),
 			(ArgType::Value, "Value to set in metadata"),
-			(ArgType::Area(false), "Area in which to modify node metadata"),
+			(ArgType::Area(false),
+				"Optional area in which to modify node metadata"),
 			(ArgType::Invert, "Modify node metadata outside the given area."),
-			(ArgType::Node(false),
-				"Node to modify metadata in. If not specified, all relevant \
-				metadata will be modified.")
+			(ArgType::Nodes,
+				"Names of one or more nodes to modify. If not specified, all \
+				nodes with the specified variable will be modified.")
 		],
 		help: "Set a variable in node metadata."
 	}

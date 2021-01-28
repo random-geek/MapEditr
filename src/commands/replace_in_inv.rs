@@ -4,7 +4,7 @@ use crate::unwrap_or;
 use crate::spatial::Vec3;
 use crate::instance::{ArgType, InstBundle};
 use crate::map_block::{MapBlock, NodeMetadataList};
-use crate::utils::{query_keys, fmt_big_num};
+use crate::utils::{query_keys, to_bytes, fmt_big_num};
 
 const NEWLINE: u8 = b'\n';
 const SPACE: u8 = b' ';
@@ -18,8 +18,12 @@ fn do_replace(inv: &mut Vec<u8>, item: &[u8], new_item: &[u8], del_meta: bool)
 	let mut mods = 0;
 
 	for line in inv.split(|&x| x == NEWLINE) {
-		let mut parts = line.splitn(4, |&x| x == SPACE);
+		if line.is_empty() {
+			// Necessary because of newline after final EndInventory
+			continue;
+		}
 
+		let mut parts = line.splitn(4, |&x| x == SPACE);
 		if parts.next() == Some(b"Item") && parts.next() == Some(item) {
 			if delete {
 				new_inv.extend_from_slice(b"Empty");
@@ -53,13 +57,13 @@ fn do_replace(inv: &mut Vec<u8>, item: &[u8], new_item: &[u8], del_meta: bool)
 
 
 fn replace_in_inv(inst: &mut InstBundle) {
-	let item = inst.args.item.as_ref().unwrap().as_bytes().to_owned();
-	let new_item = inst.args.new_item.as_ref().unwrap().as_bytes().to_owned();
+	let item = to_bytes(inst.args.item.as_ref().unwrap());
+	let new_item = to_bytes(inst.args.new_item.as_ref().unwrap());
 	let del_meta = false;
-	let node = inst.args.node.as_ref().map(|s| s.as_bytes().to_owned());
+	let nodes: Vec<_> = inst.args.nodes.iter().map(to_bytes).collect();
 
 	let keys = query_keys(&mut inst.db, &mut inst.status,
-		node.iter().collect(), inst.args.area, inst.args.invert, true);
+		&nodes, inst.args.area, inst.args.invert, true);
 
 	inst.status.begin_editing();
 	let mut item_mods: u64 = 0;
@@ -71,9 +75,10 @@ fn replace_in_inv(inst: &mut InstBundle) {
 		let mut block = unwrap_or!(MapBlock::deserialize(&data), continue);
 
 		let node_data = block.node_data.get_ref();
-		let node_id = node.as_deref().and_then(|n| block.nimap.get_id(n));
-		if node.is_some() && node_id.is_none() {
-			continue; // Block doesn't contain the required node.
+		let node_ids: Vec<_> = nodes.iter()
+			.filter_map(|n| block.nimap.get_id(n)).collect();
+		if !nodes.is_empty() && node_ids.is_empty() {
+			continue; // Block doesn't contain any of the required nodes.
 		}
 
 		let mut meta = unwrap_or!(
@@ -90,10 +95,10 @@ fn replace_in_inv(inst: &mut InstBundle) {
 					continue;
 				}
 			}
-			if let Some(id) = node_id {
-				if node_data.nodes[idx as usize] != id {
-					continue;
-				}
+			if !node_ids.is_empty()
+				&& !node_ids.contains(&node_data.nodes[idx as usize])
+			{
+				continue;
 			}
 
 			let i_mods = do_replace(&mut data.inv, &item, &new_item, del_meta);
@@ -125,7 +130,7 @@ pub fn get_command() -> Command {
 			(ArgType::NewItem, "Name of new item to replace with"),
 			(ArgType::Area(false), "Area in which to modify inventories"),
 			(ArgType::Invert, "Modify inventories outside the given area."),
-			(ArgType::Node(false), "Node to modify inventories of")
+			(ArgType::Nodes, "Names of nodes to modify inventories of")
 		],
 		help: "Replace items in node inventories."
 	}

@@ -5,8 +5,8 @@ use crate::utils::query_keys;
 
 
 fn delete_blocks(inst: &mut InstBundle) {
-	let keys = query_keys(&mut inst.db, &inst.status, Vec::new(),
-		inst.args.area, inst.args.invert, false);
+	let keys = query_keys(&mut inst.db, &inst.status,
+		&[], inst.args.area, inst.args.invert, false);
 	inst.status.begin_editing();
 
 	for key in keys {

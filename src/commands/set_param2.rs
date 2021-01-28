@@ -3,7 +3,7 @@ use super::Command;
 use crate::spatial::{Vec3, Area, area_rel_block_overlap, area_contains_block};
 use crate::instance::{ArgType, InstArgs, InstBundle};
 use crate::map_block::{MapBlock};
-use crate::utils::{query_keys, fmt_big_num};
+use crate::utils::{query_keys, to_bytes, to_slice, fmt_big_num};
 
 
 fn set_in_area_node(block: &mut MapBlock, area: Area, id: u16, val: u8) -> u64
@@ -43,10 +43,10 @@ fn set_in_area(block: &mut MapBlock, area: Area, val: u8) {
 
 fn set_param2(inst: &mut InstBundle) {
 	let param2_val = inst.args.param2_val.unwrap();
-	let node = inst.args.node.as_ref().map(|s| s.as_bytes().to_owned());
+	let node = inst.args.node.as_ref().map(to_bytes);
 
 	let keys = query_keys(&mut inst.db, &mut inst.status,
-		node.iter().collect(), inst.args.area, false, true);
+		to_slice(&node), inst.args.area, false, true);
 
 	inst.status.begin_editing();
 

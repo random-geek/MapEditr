@@ -4,9 +4,8 @@ use crate::spatial::{Vec3, Area, area_contains_block, area_touches_block,
 	area_rel_block_overlap};
 use crate::instance::{ArgType, InstArgs, InstBundle};
 use crate::map_block::MapBlock;
-use crate::utils::query_keys;
 use crate::time_keeper::TimeKeeper;
-use crate::utils::fmt_big_num;
+use crate::utils::{query_keys, to_bytes, fmt_big_num};
 
 
 fn do_replace(
@@ -113,10 +112,10 @@ fn do_replace(
 
 
 fn replace_nodes(inst: &mut InstBundle) {
-	let node = inst.args.node.as_ref().unwrap().as_bytes().to_owned();
-	let new_node = inst.args.new_node.as_ref().unwrap().as_bytes().to_owned();
+	let node = to_bytes(inst.args.node.as_ref().unwrap());
+	let new_node = to_bytes(inst.args.new_node.as_ref().unwrap());
 	let keys = query_keys(&mut inst.db, &inst.status,
-		vec![&node], inst.args.area, inst.args.invert, true);
+		std::slice::from_ref(&node), inst.args.area, inst.args.invert, true);
 
 	inst.status.begin_editing();
 	let mut count = 0;
