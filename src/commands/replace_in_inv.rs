@@ -13,7 +13,7 @@ const SPACE: u8 = b' ';
 fn do_replace(inv: &mut Vec<u8>, item: &[u8], new_item: &[u8], del_meta: bool)
 	-> u64
 {
-	let delete = new_item == b"Empty";
+	let delete = new_item.is_empty();
 	let mut new_inv = Vec::with_capacity(inv.len());
 	let mut mods = 0;
 
@@ -22,8 +22,8 @@ fn do_replace(inv: &mut Vec<u8>, item: &[u8], new_item: &[u8], del_meta: bool)
 			// Necessary because of newline after final EndInventory
 			continue;
 		}
-
-		let mut parts = line.splitn(4, |&x| x == SPACE);
+		// Max 5 parts: Item <name> <count> <wear> <metadata>
+		let mut parts = line.splitn(5, |&x| x == SPACE);
 		if parts.next() == Some(b"Item") && parts.next() == Some(item) {
 			if delete {
 				new_inv.extend_from_slice(b"Empty");
@@ -31,14 +31,21 @@ fn do_replace(inv: &mut Vec<u8>, item: &[u8], new_item: &[u8], del_meta: bool)
 				new_inv.extend_from_slice(b"Item ");
 				new_inv.extend_from_slice(new_item);
 
-				if let Some(count) = parts.next() {
-					new_inv.push(SPACE);
-					new_inv.extend_from_slice(count);
-				}
-				if !del_meta {
-					if let Some(meta) = parts.next() {
+				if del_meta { // Only re-serialize necessary parts
+					let count = parts.next().unwrap_or(b"1");
+					let wear = parts.next().unwrap_or(b"0");
+					if count != b"1" || wear != b"0" {
 						new_inv.push(SPACE);
-						new_inv.extend_from_slice(meta);
+						new_inv.extend_from_slice(count);
+					}
+					if wear != b"0" {
+						new_inv.push(SPACE);
+						new_inv.extend_from_slice(wear);
+					}
+				} else {
+					for part in parts {
+						new_inv.push(SPACE);
+						new_inv.extend_from_slice(part);
 					}
 				}
 			}
@@ -59,7 +66,6 @@ fn do_replace(inv: &mut Vec<u8>, item: &[u8], new_item: &[u8], del_meta: bool)
 fn replace_in_inv(inst: &mut InstBundle) {
 	let item = to_bytes(inst.args.item.as_ref().unwrap());
 	let new_item = to_bytes(inst.args.new_item.as_ref().unwrap());
-	let del_meta = false;
 	let nodes: Vec<_> = inst.args.nodes.iter().map(to_bytes).collect();
 
 	let keys = query_keys(&mut inst.db, &mut inst.status,
@@ -101,7 +107,8 @@ fn replace_in_inv(inst: &mut InstBundle) {
 				continue;
 			}
 
-			let i_mods = do_replace(&mut data.inv, &item, &new_item, del_meta);
+			let i_mods = do_replace(&mut data.inv, &item, &new_item,
+				inst.args.delete_meta);
 			item_mods += i_mods;
 			if i_mods > 0 {
 				node_mods += 1;
@@ -126,12 +133,96 @@ pub fn get_command() -> Command {
 		func: replace_in_inv,
 		verify_args: None,
 		args: vec![
-			(ArgType::Item, "Name of item to replace"),
-			(ArgType::NewItem, "Name of new item to replace with"),
+			(ArgType::Item, "Name of the item to replace"),
+			(ArgType::NewItem, "Name of the new item. Use an empty string \
+				(\"\") to delete items."),
 			(ArgType::Area(false), "Area in which to modify inventories"),
 			(ArgType::Invert, "Modify inventories outside the given area."),
-			(ArgType::Nodes, "Names of nodes to modify inventories of")
+			(ArgType::Nodes, "Names of nodes to modify inventories of"),
+			(ArgType::DeleteMeta, "Delete metadata of affected items."),
 		],
-		help: "Replace items in node inventories."
+		help: "Replace or delete items in node inventories."
+	}
+}
+
+
+#[cfg(test)]
+mod tests {
+	use super::do_replace;
+
+	#[test]
+	fn test_replace_in_inv() {
+		let original = b"\
+			List main 10\n\
+			Width 5\n\
+			Item tools:pickaxe 1 300\n\
+			Item test:foo\n\
+			Item test:foo 3\n\
+			Item test:foo 10 32768\n\
+			Empty\n\
+			Item test:foo 1 0 \x01some variable\x02some value\x03\n\
+			Item test:foo 1 1234 \x01color\x02#FF00FF\x03\n\
+			Item test:bar 20\n\
+			Item test:foo 42 0 \x01random_number\x02892\x03\n\
+			Item test:foo 99 100 \x01description\x02test metadata\x03\n\
+			EndInventoryList\n\
+			EndInventory\n";
+		let replace = b"\
+			List main 10\n\
+			Width 5\n\
+			Item tools:pickaxe 1 300\n\
+			Item test:bar\n\
+			Item test:bar 3\n\
+			Item test:bar 10 32768\n\
+			Empty\n\
+			Item test:bar 1 0 \x01some variable\x02some value\x03\n\
+			Item test:bar 1 1234 \x01color\x02#FF00FF\x03\n\
+			Item test:bar 20\n\
+			Item test:bar 42 0 \x01random_number\x02892\x03\n\
+			Item test:bar 99 100 \x01description\x02test metadata\x03\n\
+			EndInventoryList\n\
+			EndInventory\n";
+		let delete = b"\
+			List main 10\n\
+			Width 5\n\
+			Item tools:pickaxe 1 300\n\
+			Empty\n\
+			Empty\n\
+			Empty\n\
+			Empty\n\
+			Empty\n\
+			Empty\n\
+			Item test:bar 20\n\
+			Empty\n\
+			Empty\n\
+			EndInventoryList\n\
+			EndInventory\n";
+		let replace_delete_meta = b"\
+			List main 10\n\
+			Width 5\n\
+			Item tools:pickaxe 1 300\n\
+			Item test:bar\n\
+			Item test:bar 3\n\
+			Item test:bar 10 32768\n\
+			Empty\n\
+			Item test:bar\n\
+			Item test:bar 1 1234\n\
+			Item test:bar 20\n\
+			Item test:bar 42\n\
+			Item test:bar 99 100\n\
+			EndInventoryList\n\
+			EndInventory\n";
+
+		let mut inv = original.to_vec();
+		do_replace(&mut inv, b"test:foo", b"test:bar", false);
+		assert_eq!(&inv, replace);
+
+		let mut inv = original.to_vec();
+		do_replace(&mut inv, b"test:foo", b"", false);
+		assert_eq!(&inv, delete);
+
+		let mut inv = original.to_vec();
+		do_replace(&mut inv, b"test:foo", b"test:bar", true);
+		assert_eq!(&inv, replace_delete_meta);
 	}
 }

@@ -25,6 +25,7 @@ pub enum ArgType {
 	Items,
 	Key,
 	Value,
+	DeleteMeta,
 }
 
 
@@ -46,6 +47,7 @@ pub struct InstArgs {
 	pub items: Option<Vec<String>>,
 	pub key: Option<String>,
 	pub value: Option<String>,
+	pub delete_meta: bool,
 }
 
 

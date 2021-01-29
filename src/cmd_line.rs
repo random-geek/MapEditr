@@ -122,6 +122,10 @@ fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 				.takes_value(true)
 				.required(true)
 				.help(help),
+		ArgType::DeleteMeta =>
+			Arg::with_name("delete_meta")
+				.long("deletemeta")
+				.help(help),
 	}]
 }
 
@@ -188,6 +192,7 @@ fn parse_cmd_line_args() -> anyhow::Result<InstArgs> {
 			.map(|v| v.map(str::to_string).collect()),
 		key: sub_matches.value_of("key").map(str::to_string),
 		value: sub_matches.value_of("value").map(str::to_string),
+		delete_meta: sub_matches.is_present("delete_meta"),
 	})
 }
 
