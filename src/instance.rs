@@ -18,14 +18,15 @@ pub enum ArgType {
 	Node(bool),
 	Nodes,
 	NewNode,
-	Item,
-	NewItem,
-	Param2Val,
 	Object,
+	Item,
 	Items,
+	NewItem,
+	DeleteMeta,
+	DeleteItem,
 	Key,
 	Value,
-	DeleteMeta,
+	Param2Val,
 }
 
 
@@ -40,14 +41,15 @@ pub struct InstArgs {
 	pub node: Option<String>,
 	pub nodes: Vec<String>,
 	pub new_node: Option<String>,
-	pub item: Option<String>,
-	pub new_item: Option<String>,
-	pub param2_val: Option<u8>,
 	pub object: Option<String>,
+	pub item: Option<String>,
 	pub items: Option<Vec<String>>,
+	pub new_item: Option<String>,
+	pub delete_meta: bool,
+	pub delete_item: bool,
 	pub key: Option<String>,
 	pub value: Option<String>,
-	pub delete_meta: bool,
+	pub param2_val: Option<u8>,
 }
 
 

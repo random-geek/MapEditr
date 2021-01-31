@@ -20,7 +20,7 @@ only SQLite format maps are currently supported.
 
 ## General usage
 
-`mapedit [-h] <map> <subcommand>`
+`mapeditr [-h] <map> <subcommand>`
 
 Arguments:
 
@@ -166,25 +166,30 @@ mapblocks can be copied verbatim.
 
 ### replaceininv
 
-Usage: `replaceininv [--deletemeta] [--node <node>] [--p1 x y z] [--p2 x y z] [--invert] <item> <new_item>`
+Usage: `replaceininv [--delete] [--deletemeta] [--nodes <nodes>] [--p1 x y z]
+[--p2 x y z] [--invert] <item> [new_item]`
 
-Replace a certain item with another in node inventories. To delete items
-instead of replacing them, use "Empty" (with a capital E) for `replacename`.
+Replace or delete certain items in node inventories.
 
 Arguments:
 
-- `item`: Name of item to replace
-- `new_item`: Name of new item to replace with
-- `--deletemeta`: Delete metadata of replaced items. If not specified, any item
-metadata will remain unchanged.
-- `--node`: Name of node to to replace in. If not specified, the item will be
-replaced in all node inventories.
-- `--p1, --p2`: Area in which to search for nodes. If not specified, items will
-be replaced across the entire map.
-- `--invert`: Only search for nodes *outside* the given area.
+- `item`: Name of item to replace/delete
+- `new_item`: Name of new item, if replacing items.
+- `--delete`: Delete items instead of replacing them.
+- `--deletemeta`: Delete metadata of items. May be used with or without
+`new_item`, depending on whether items should also be replaced.
+- `--nodes`: Names of one or more nodes to replace in. If not specified, the
+item will be replaced in all node inventories.
+- `--p1, --p2`: Area in which to modify node inventories. If not specified,
+items will be replaced in all node inventories.
+- `--invert`: Only modify node inventories *outside* the given area.
 
-**Tip:** To only delete metadata without replacing the nodes, use the
-`--deletemeta` flag, and make `new_item` the same as `item`.
+Examples:
+
+Replace all written books in chests with unwritten books, deleting metadata:
+
+`replaceininv default:book_written default:book --deletemeta --nodes
+default:chest default:chest_locked`
 
 ### replacenodes
 

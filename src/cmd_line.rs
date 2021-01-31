@@ -87,30 +87,33 @@ fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 				.takes_value(true)
 				.required(true)
 				.help(help),
-		ArgType::Item =>
-			Arg::with_name("item")
-				.takes_value(true)
-				.required(true)
-				.help(help),
-		ArgType::NewItem =>
-			Arg::with_name("new_item")
-				.takes_value(true)
-				.required(true)
-				.help(help),
-		ArgType::Param2Val =>
-			Arg::with_name("param2_val")
-				.required(true)
-				.help(help),
 		ArgType::Object =>
 			Arg::with_name("object")
 				.long("obj")
 				.takes_value(true)
+				.help(help),
+		ArgType::Item =>
+			Arg::with_name("item")
+				.takes_value(true)
+				.required(true)
 				.help(help),
 		ArgType::Items =>
 			Arg::with_name("items")
 				.long("items")
 				.min_values(0)
 				.max_values(1)
+				.help(help),
+		ArgType::NewItem =>
+			Arg::with_name("new_item")
+				.takes_value(true)
+				.help(help),
+		ArgType::DeleteMeta =>
+			Arg::with_name("delete_meta")
+				.long("deletemeta")
+				.help(help),
+		ArgType::DeleteItem =>
+			Arg::with_name("delete_item")
+				.long("delete")
 				.help(help),
 		ArgType::Key =>
 			Arg::with_name("key")
@@ -122,9 +125,9 @@ fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 				.takes_value(true)
 				.required(true)
 				.help(help),
-		ArgType::DeleteMeta =>
-			Arg::with_name("delete_meta")
-				.long("deletemeta")
+		ArgType::Param2Val =>
+			Arg::with_name("param2_val")
+				.required(true)
 				.help(help),
 	}]
 }
@@ -161,8 +164,8 @@ fn parse_cmd_line_args() -> anyhow::Result<InstArgs> {
 	let sub_matches = matches.subcommand_matches(&sub_name).unwrap();
 
 	Ok(InstArgs {
-		map_path: matches.value_of("map").unwrap().to_string(),
 		command: sub_name,
+		map_path: matches.value_of("map").unwrap().to_string(),
 		input_map_path: sub_matches.value_of("input_map").map(str::to_string),
 		area: {
 			let p1_maybe = sub_matches.values_of("p1").map(arg_to_pos)
@@ -182,17 +185,17 @@ fn parse_cmd_line_args() -> anyhow::Result<InstArgs> {
 		nodes: sub_matches.values_of("nodes").iter_mut().flatten()
 			.map(str::to_string).collect(),
 		new_node: sub_matches.value_of("new_node").map(str::to_string),
-		item: sub_matches.value_of("item").map(str::to_string),
-		new_item: sub_matches.value_of("new_item").map(str::to_string),
-		param2_val: sub_matches.value_of("param2_val")
-			.map(|val| val.parse().context("Invalid param2 value."))
-			.transpose().context("Invalid param2 value.")?,
 		object: sub_matches.value_of("object").map(str::to_string),
+		item: sub_matches.value_of("item").map(str::to_string),
 		items: sub_matches.values_of("items")
 			.map(|v| v.map(str::to_string).collect()),
+		new_item: sub_matches.value_of("new_item").map(str::to_string),
+		delete_meta: sub_matches.is_present("delete_meta"),
+		delete_item: sub_matches.is_present("delete_item"),
 		key: sub_matches.value_of("key").map(str::to_string),
 		value: sub_matches.value_of("value").map(str::to_string),
-		delete_meta: sub_matches.is_present("delete_meta"),
+		param2_val: sub_matches.value_of("param2_val").map(|val| val.parse())
+			.transpose().context("Invalid param2 value.")?,
 	})
 }
 

@@ -2,7 +2,7 @@ use super::Command;
 
 use crate::unwrap_or;
 use crate::spatial::Vec3;
-use crate::instance::{ArgType, InstBundle};
+use crate::instance::{ArgType, InstArgs, InstBundle};
 use crate::map_block::{MapBlock, NodeMetadataList};
 use crate::utils::{query_keys, to_bytes, fmt_big_num};
 
@@ -65,9 +65,10 @@ fn do_replace(inv: &mut Vec<u8>, item: &[u8], new_item: &[u8], del_meta: bool)
 
 fn replace_in_inv(inst: &mut InstBundle) {
 	let item = to_bytes(inst.args.item.as_ref().unwrap());
-	let new_item = to_bytes(inst.args.new_item.as_ref().unwrap());
-	let nodes: Vec<_> = inst.args.nodes.iter().map(to_bytes).collect();
+	let new_item = inst.args.new_item.as_ref().map(to_bytes)
+		.unwrap_or(if inst.args.delete_item { vec![] } else { item.clone() });
 
+	let nodes: Vec<_> = inst.args.nodes.iter().map(to_bytes).collect();
 	let keys = query_keys(&mut inst.db, &mut inst.status,
 		&nodes, inst.args.area, inst.args.invert, true);
 
@@ -128,18 +129,29 @@ fn replace_in_inv(inst: &mut InstBundle) {
 }
 
 
+fn verify_args(args: &InstArgs) -> anyhow::Result<()> {
+	if args.new_item.is_none() && !args.delete_item && !args.delete_meta {
+		anyhow::bail!(
+			"new_item is required unless --delete or --deletemeta is used.")
+	} else if args.new_item.is_some() && args.delete_item {
+		anyhow::bail!("Cannot delete items if new_item is specified.");
+	}
+	Ok(())
+}
+
+
 pub fn get_command() -> Command {
 	Command {
 		func: replace_in_inv,
-		verify_args: None,
+		verify_args: Some(verify_args),
 		args: vec![
-			(ArgType::Item, "Name of the item to replace"),
-			(ArgType::NewItem, "Name of the new item. Use an empty string \
-				(\"\") to delete items."),
+			(ArgType::Item, "Name of the item to replace/delete"),
+			(ArgType::NewItem, "Name of the new item, if replacing items."),
+			(ArgType::DeleteMeta, "Delete metadata of affected items."),
+			(ArgType::DeleteItem, "Delete items instead of replacing them."),
 			(ArgType::Area(false), "Area in which to modify inventories"),
 			(ArgType::Invert, "Modify inventories outside the given area."),
 			(ArgType::Nodes, "Names of nodes to modify inventories of"),
-			(ArgType::DeleteMeta, "Delete metadata of affected items."),
 		],
 		help: "Replace or delete items in node inventories."
 	}
