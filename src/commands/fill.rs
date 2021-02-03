@@ -1,5 +1,6 @@
 use super::Command;
 
+use crate::unwrap_or;
 use crate::spatial::{Vec3, Area, area_rel_block_overlap, area_contains_block};
 use crate::instance::{ArgType, InstBundle};
 use crate::map_block::{MapBlock};
@@ -32,9 +33,14 @@ fn fill(inst: &mut InstBundle) {
 
 	let mut count: u64 = 0;
 	for key in keys {
+		inst.status.inc_done();
+
 		let pos = Vec3::from_block_key(key);
 		let data = inst.db.get_block(key).unwrap();
-		let mut block = MapBlock::deserialize(&data).unwrap();
+		let mut block = unwrap_or!(MapBlock::deserialize(&data), {
+			inst.status.inc_failed();
+			continue;
+		});
 
 		if area_contains_block(&area, pos) {
 			let nd = block.node_data.get_mut();
@@ -57,12 +63,10 @@ fn fill(inst: &mut InstBundle) {
 		}
 
 		inst.db.set_block(key, &block.serialize()).unwrap();
-		inst.status.inc_done();
 	}
 
 	inst.status.end_editing();
-	inst.status.log_info(
-		format!("{} nodes filled.", fmt_big_num(count)).as_str());
+	inst.status.log_info(format!("{} nodes filled.", fmt_big_num(count)));
 }
 
 

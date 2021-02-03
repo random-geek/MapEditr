@@ -144,8 +144,7 @@ fn replace_nodes(inst: &mut InstBundle) {
 
 	// tk.print();
 	inst.status.end_editing();
-	inst.status.log_info(
-		format!("{} nodes replaced.", fmt_big_num(count)).as_str());
+	inst.status.log_info(format!("{} nodes replaced.", fmt_big_num(count)));
 }
 
 

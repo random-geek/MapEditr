@@ -67,6 +67,7 @@ pub struct InstStatus {
 	pub show_progress: bool,
 	pub blocks_total: usize,
 	pub blocks_done: usize,
+	pub blocks_failed: usize,
 	pub state: InstState
 }
 
@@ -76,6 +77,7 @@ impl InstStatus {
 			show_progress: true,
 			blocks_total: 0,
 			blocks_done: 0,
+			blocks_failed: 0,
 			state: InstState::Ignore
 		}
 	}
@@ -110,6 +112,10 @@ pub struct StatusServer {
 }
 
 impl StatusServer {
+	pub fn get_status(&self) -> InstStatus {
+		self.status.lock().unwrap().clone()
+	}
+
 	pub fn set_state(&self, new_state: InstState) {
 		self.status.lock().unwrap().state = new_state;
 		self.event_tx.send(InstEvent::NewState(new_state)).unwrap();
@@ -121,6 +127,11 @@ impl StatusServer {
 
 	pub fn inc_done(&self) {
 		self.status.lock().unwrap().blocks_done += 1;
+	}
+
+	pub fn inc_failed(&mut self) {
+		// TODO: Proper error handling for all commands.
+		self.status.lock().unwrap().blocks_failed += 1;
 	}
 
 	pub fn set_show_progress(&self, sp: bool) {
@@ -182,44 +193,59 @@ fn status_channel() -> (StatusServer, StatusClient) {
 
 
 fn verify_args(args: &InstArgs) -> anyhow::Result<()> {
-	fn verify_item_name(name: &str) -> anyhow::Result<()> {
+	fn is_valid_name(name: &str) -> bool {
 		if name == "air" || name == "ignore" {
-			Ok(())
+			true
 		} else {
-			let delim = name.find(':')
-				.ok_or(anyhow::anyhow!(""))?;
+			let delim = match name.find(':') {
+				Some(d) => d,
+				None => return false
+			};
 
 			let mod_name = &name[..delim];
-			anyhow::ensure!(mod_name.find(|c: char|
-				!(c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
-			).is_none());
-
 			let item_name = &name[delim + 1..];
-			anyhow::ensure!(item_name.find(|c: char|
-				!(c.is_ascii_alphanumeric() || c == '_')
-			).is_none());
 
-			Ok(())
+			if mod_name.find(|c: char|
+				!(c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_'))
+				.is_some()
+			|| item_name.find(|c: char|
+				!(c.is_ascii_alphanumeric() || c == '_'))
+				.is_some()
+			{
+				false
+			} else {
+				true
+			}
 		}
 	}
+
+	// TODO: Complete verifications.
 
 	if args.area.is_none() && args.invert {
 		anyhow::bail!("Cannot invert without a specified area.");
 	}
 	if let Some(a) = args.area {
-		for pos in vec![a.min, a.max] {
+		for pos in &[a.min, a.max] {
 			anyhow::ensure!(pos.is_valid_node_pos(),
 				"Area corner is outside map bounds: {}.", pos);
 		}
 	}
-	if let Some(sn) = &args.node {
-		verify_item_name(sn.as_str())
-			.with_context(|| format!("Invalid node name: {}.", sn))?;
+
+	macro_rules! verify_name {
+		($name:expr, $msg:literal) => {
+			if let Some(n) = &$name {
+				anyhow::ensure!(is_valid_name(n), $msg, n);
+			}
+		}
 	}
-	if let Some(rn) = &args.new_node {
-		verify_item_name(rn.as_str())
-			.with_context(|| format!("Invalid replacement name: {}.", rn))?;
+
+	verify_name!(args.node, "Invalid node name: {}");
+	for n in &args.nodes {
+		anyhow::ensure!(is_valid_name(n), "Invalid node name: {}", n);
 	}
+	verify_name!(args.new_node, "Invalid node name: {}");
+	verify_name!(args.object, "Invalid object name: {}");
+	verify_name!(args.item, "Invalid item name: {}");
 
 	Ok(())
 }
@@ -266,10 +292,17 @@ fn compute_thread(args: InstArgs, status: StatusServer)
 		Some(conn) => Some(MapDatabase::new(conn)?),
 		None => None
 	};
-
+	// TODO: Standard warning?
 	let func = commands[args.command.as_str()].func;
 	let mut inst = InstBundle {args, status, db, idb};
 	func(&mut inst);
+
+	let fails = inst.status.get_status().blocks_failed;
+	if fails > 0 {
+		// TODO: log_warning
+		inst.status.log_info(format!(
+			"Skipped {} invalid/unsupported mapblocks.", fails));
+	}
 
 	if inst.db.is_in_transaction() {
 		inst.status.log_info("Committing...");

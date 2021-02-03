@@ -96,8 +96,7 @@ fn set_param2(inst: &mut InstBundle) {
 	}
 
 	inst.status.end_editing();
-	inst.status.log_info(
-		format!("{} nodes set.", fmt_big_num(count)).as_str());
+	inst.status.log_info(format!("{} nodes set.", fmt_big_num(count)));
 }
 
 

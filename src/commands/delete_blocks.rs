@@ -10,6 +10,7 @@ fn delete_blocks(inst: &mut InstBundle) {
 	inst.status.begin_editing();
 
 	for key in keys {
+		// TODO: This is kind of inefficient seeming.
 		inst.status.inc_done();
 		inst.db.delete_block(key).unwrap();
 	}
