@@ -1,7 +1,7 @@
 use super::*;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NodeTimer {
 	pub pos: u16,
 	pub timeout: u32,

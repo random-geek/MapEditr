@@ -1,11 +1,12 @@
 use super::Command;
 
+use crate::unwrap_or;
 use crate::spatial::{Vec3, area_rel_block_overlap,
 	area_abs_block_overlap};
-use crate::map_block::{MapBlock, NodeMetadataList};
+use crate::map_block::{MapBlock, is_valid_generated, NodeMetadataList};
 use crate::block_utils::{merge_blocks, merge_metadata, clean_name_id_map};
 use crate::instance::{ArgType, InstBundle};
-use crate::utils::query_keys;
+use crate::utils::{CacheMap, CachedMapDatabase, query_keys};
 use crate::time_keeper::TimeKeeper;
 
 
@@ -29,19 +30,23 @@ fn clone(inst: &mut InstBundle) {
 		(Vec3::from_block_key(*k) * sort_dir + sort_offset).to_block_key()
 	});
 
-	inst.status.begin_editing();
-
+	// let mut db = CachedMapDatabase::new(&mut inst.db, 256);
+	let mut block_cache = CacheMap::<i64, MapBlock>::with_capacity(256);
 	let mut tk = TimeKeeper::new();
-	for key in keys {
+
+	inst.status.begin_editing();
+	for dst_key in keys {
 		inst.status.inc_done();
 
-		let dst_data = inst.db.get_block(key).unwrap();
-		// TODO: is_valid_generated
+		let dst_data = inst.db.get_block(dst_key).unwrap();
+		if !is_valid_generated(&dst_data) {
+			continue;
+		}
 		let mut dst_block = MapBlock::deserialize(&dst_data).unwrap();
 		let mut dst_meta = NodeMetadataList::deserialize(
 			dst_block.metadata.get_ref()).unwrap();
 
-		let dst_pos = Vec3::from_block_key(key);
+		let dst_pos = Vec3::from_block_key(dst_key);
 		let dst_part_abs = area_abs_block_overlap(&dst_area, dst_pos)
 			.unwrap();
 		let src_part_abs = dst_part_abs - offset;
@@ -51,8 +56,21 @@ fn clone(inst: &mut InstBundle) {
 			if !src_pos.is_valid_block_pos() {
 				continue;
 			}
-			let src_data = inst.db.get_block(src_pos.to_block_key()).unwrap();
-			let src_block = MapBlock::deserialize(&src_data).unwrap();
+			let src_key = src_pos.to_block_key();
+			let src_block = if let Some(block) = block_cache.get(&src_key) {
+				let _t = tk.get_timer("get_block (cached)");
+				block.clone()
+			} else {
+				let _t = tk.get_timer("get_block (database)");
+				let src_data = unwrap_or!(inst.db.get_block(src_key),
+					continue);
+				if !is_valid_generated(&src_data) {
+					continue;
+				}
+				let src_block = MapBlock::deserialize(&src_data).unwrap();
+				block_cache.insert(src_key, src_block.clone());
+				src_block
+			};
 			let src_meta = NodeMetadataList::deserialize(
 				&src_block.metadata.get_ref()).unwrap();
 
@@ -80,11 +98,11 @@ fn clone(inst: &mut InstBundle) {
 		}
 
 		*dst_block.metadata.get_mut() = dst_meta.serialize(dst_block.version);
-		inst.db.set_block(key, &dst_block.serialize()).unwrap();
+		inst.db.set_block(dst_key, &dst_block.serialize()).unwrap();
 	}
 
-	// tk.print();
 	inst.status.end_editing();
+	tk.print(&inst.status);
 }
 
 

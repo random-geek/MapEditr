@@ -2,7 +2,7 @@ use super::*;
 use crate::spatial::Vec3;
 
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct StaticObject {
 	pub obj_type: u8,
 	pub f_pos: Vec3,

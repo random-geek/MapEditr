@@ -12,7 +12,7 @@ pub fn is_valid_generated(data: &[u8]) -> bool {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MapBlock {
 	pub version: u8,
 	pub flags: u8,
@@ -81,6 +81,7 @@ impl MapBlock {
 	}
 
 	pub fn serialize(&self) -> Vec<u8> {
+		// TODO: Retain compression level used by Minetest?
 		// TODO: Use a bigger buffer (unsafe?) to reduce heap allocations.
 		let mut buf = Vec::with_capacity(BLOCK_BUF_SIZE);
 		let mut data = Cursor::new(buf);

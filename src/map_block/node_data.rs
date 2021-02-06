@@ -9,7 +9,7 @@ const BLOCK_SIZE: usize = 16;
 const NODE_COUNT: usize = BLOCK_SIZE * BLOCK_SIZE * BLOCK_SIZE;
 
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct NodeData {
 	pub nodes: Vec<u16>,
 	pub param1: Vec<u8>,

@@ -5,7 +5,7 @@ use super::*;
 
 /// Maps 16-bit node IDs to actual node names.
 /// Relevant Minetest source file: /src/nameidmapping.cpp
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NameIdMap {
 	// Use a BTreeMap instead of a HashMap to preserve the order of IDs.
 	pub map: BTreeMap<u16, Vec<u8>>,

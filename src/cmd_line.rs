@@ -247,7 +247,10 @@ fn print_editing_status(done: usize, total: usize, real_start: Instant,
 
 
 fn print_log(log_type: LogType, msg: String) {
-	eprintln!("{}: {}", log_type, msg)
+	let prefix = format!("{}: ", log_type);
+	let indented = msg.lines().collect::<Vec<_>>()
+		.join(&format!( "\n{}", " ".repeat(prefix.len()) ));
+	eprintln!("{}{}", prefix, indented);
 }
 
 

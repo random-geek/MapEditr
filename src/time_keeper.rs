@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::time::{Instant, Duration};
 
+use crate::instance::StatusServer;
+
 
 pub struct Timer<'a> {
 	parent: &'a mut TimeKeeper,
@@ -38,11 +40,12 @@ impl TimeKeeper {
 		Timer {parent: self, name: name.to_string(), start: Instant::now()}
 	}
 
-	/*pub fn print(&mut self) {
-		println!("");
+	pub fn print(&mut self, status: &StatusServer) {
+		let mut msg = String::new();
 		for (name, (duration, count)) in &self.times {
-			println!("{}: {} x {:?} each; {:?} total",
+			msg += &format!("{}: {} x {:?} each; {:?} total\n",
 				name, count, *duration / *count, duration);
 		}
-	}*/
+		status.log_info(msg);
+	}
 }

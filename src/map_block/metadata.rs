@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::cmp::min;
 
 use memmem::{Searcher, TwoWaySearcher};
 
@@ -16,7 +17,8 @@ impl NodeMetadata {
 		-> Result<Self, MapBlockError>
 	{
 		let var_count = data.read_u32::<BigEndian>()?;
-		let mut vars = HashMap::with_capacity(var_count as usize);
+		// Avoid memory allocation errors with corrupt data.
+		let mut vars = HashMap::with_capacity(min(var_count as usize, 0xFFFF));
 
 		for _ in 0..var_count {
 			let name = read_string16(data)?;

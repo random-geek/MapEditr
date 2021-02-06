@@ -1,10 +1,12 @@
 use std::time::Duration;
+use std::collections::{HashMap, VecDeque};
 
 use memmem::{Searcher, TwoWaySearcher};
 use byteorder::{WriteBytesExt, BigEndian};
 
 use crate::instance::{InstState, StatusServer};
-use crate::map_database::MapDatabase;
+use crate::map_block::MapBlock;
+use crate::map_database::{MapDatabase, DBError};
 use crate::spatial::{Area, Vec3};
 
 
@@ -64,6 +66,68 @@ pub fn query_keys(
 	status.set_total(keys.len());
 	status.set_state(InstState::Ignore);
 	keys
+}
+
+
+pub struct CacheMap<K, V> {
+	key_queue: VecDeque<K>,
+	map: HashMap<K, V>,
+	cap: usize,
+}
+
+impl<K: Eq + std::hash::Hash + Clone, V> CacheMap<K, V> {
+	pub fn with_capacity(cap: usize) -> Self {
+		Self {
+			key_queue: VecDeque::with_capacity(cap),
+			map: HashMap::with_capacity(cap),
+			cap
+		}
+	}
+
+	pub fn insert(&mut self, key: K, value: V) {
+		if self.key_queue.len() >= self.cap {
+			if let Some(oldest_key) = self.key_queue.pop_front() {
+				self.map.remove(&oldest_key);
+			}
+		}
+		self.key_queue.push_back(key.clone());
+		self.map.insert(key, value);
+	}
+
+	#[inline]
+	pub fn get(&self, key: &K) -> Option<&V> {
+		self.map.get(key)
+	}
+}
+
+
+pub struct CachedMapDatabase<'a, 'b> {
+	db: &'a mut MapDatabase<'b>,
+	cache: CacheMap<i64, Option<MapBlock>>
+}
+
+impl<'a, 'b> CachedMapDatabase<'a, 'b> {
+	pub fn new(db: &'a mut MapDatabase<'b>, cap: usize) -> Self {
+		Self { db, cache: CacheMap::with_capacity(cap) }
+	}
+
+	pub fn get_block(&mut self, key: i64) -> Option<MapBlock> {
+		if let Some(block) = self.cache.get(&key) {
+			block.clone()
+		} else {
+			let data = self.db.get_block(key).ok();
+			let block = match data {
+				Some(d) => MapBlock::deserialize(&d).ok(),
+				None => None
+			};
+			self.cache.insert(key, block.clone());
+			block
+		}
+	}
+
+	pub fn set_block(&mut self, key: i64, data: &[u8]) -> Result<(), DBError> {
+		self.db.set_block(key, data)
+	}
 }
 
 

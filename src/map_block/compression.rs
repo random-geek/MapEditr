@@ -34,7 +34,7 @@ impl Compress for Vec<u8> {
 }
 
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ZlibContainer<T: Compress> {
 	compressed: Option<Vec<u8>>,
 	data: T

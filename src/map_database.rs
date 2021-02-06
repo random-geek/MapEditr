@@ -100,7 +100,7 @@ impl<'a> MapDatabase<'a> {
 		Ok(())
 	}
 
-	pub fn iter_rows(&mut self) -> MapDatabaseRows {
+	pub fn iter_rows(&self) -> MapDatabaseRows {
 		self.begin_if_needed().unwrap();
 		let stmt = self.conn.prepare("SELECT pos, data FROM blocks").unwrap();
 		MapDatabaseRows {stmt_get: stmt}
