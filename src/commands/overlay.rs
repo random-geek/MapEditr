@@ -1,11 +1,14 @@
-use super::Command;
+use super::{Command, BLOCK_CACHE_SIZE};
 
+use crate::opt_unwrap_or;
 use crate::spatial::{Vec3, Area, area_rel_block_overlap,
 	area_abs_block_overlap, area_contains_block, area_touches_block};
 use crate::instance::{ArgType, InstArgs, InstBundle};
-use crate::map_block::{MapBlock, NodeMetadataList, is_valid_generated};
+use crate::map_database::MapDatabase;
+use crate::map_block::{MapBlock, MapBlockError, NodeMetadataList,
+	is_valid_generated};
 use crate::block_utils::{merge_blocks, merge_metadata, clean_name_id_map};
-use crate::utils::query_keys;
+use crate::utils::{query_keys, CacheMap};
 
 
 fn verify_args(args: &InstArgs) -> anyhow::Result<()> {
@@ -97,6 +100,26 @@ fn overlay_no_offset(inst: &mut InstBundle) {
 }
 
 
+type BlockResult = Option<Result<MapBlock, MapBlockError>>;
+
+fn get_cached(
+	db: &mut MapDatabase,
+	cache: &mut CacheMap<i64, BlockResult>,
+	key: i64
+) -> BlockResult {
+	match cache.get(&key) {
+		Some(data) => data.clone(),
+		None => {
+			let block = db.get_block(key).ok()
+				.filter(|d| is_valid_generated(d))
+				.map(|d| MapBlock::deserialize(&d));
+			cache.insert(key, block.clone());
+			block
+		}
+	}
+}
+
+
 /// Overlay with offset, with or without area.
 #[inline]
 fn overlay_with_offset(inst: &mut InstBundle) {
@@ -106,21 +129,27 @@ fn overlay_with_offset(inst: &mut InstBundle) {
 	let idb = inst.idb.as_mut().unwrap();
 
 	// Get keys from output database.
-	let keys = query_keys(&mut inst.db, &inst.status,
+	let dst_keys = query_keys(&mut inst.db, &inst.status,
 		&[], dst_area, inst.args.invert, true);
-	inst.status.begin_editing();
 
-	for key in keys {
+	let mut src_block_cache = CacheMap::with_capacity(BLOCK_CACHE_SIZE);
+
+	inst.status.begin_editing();
+	for dst_key in dst_keys {
 		inst.status.inc_done();
 
-		let dst_pos = Vec3::from_block_key(key);
-		let dst_data = inst.db.get_block(key).unwrap();
-		if !is_valid_generated(&dst_data) {
-			continue;
-		}
-		let mut dst_block = MapBlock::deserialize(&dst_data).unwrap();
-		let mut dst_meta = NodeMetadataList::deserialize(
-			dst_block.metadata.get_ref()).unwrap();
+		let dst_pos = Vec3::from_block_key(dst_key);
+		let dst_data = opt_unwrap_or!(
+			inst.db.get_block(dst_key).ok().filter(|d| is_valid_generated(d)),
+			continue
+		);
+		let (mut dst_block, mut dst_meta) = opt_unwrap_or!(
+			MapBlock::deserialize(&dst_data).ok().and_then(|b|
+				NodeMetadataList::deserialize(b.metadata.get_ref())
+					.ok().map(|m| (b, m))
+			),
+			{ inst.status.inc_failed(); continue; }
+		);
 
 		let dst_part_abs = dst_area.map_or(
 			Area::new(dst_pos * 16, dst_pos * 16 + 15),
@@ -133,17 +162,16 @@ fn overlay_with_offset(inst: &mut InstBundle) {
 			if !src_pos.is_valid_block_pos() {
 				continue;
 			}
-			let src_data = match idb.get_block(src_pos.to_block_key()) {
-				Ok(d) => if is_valid_generated(&d) {
-					d
-				} else {
-					continue
-				},
-				Err(_) => continue
-			};
-			let src_block = MapBlock::deserialize(&src_data).unwrap();
-			let src_meta = NodeMetadataList::deserialize(
-				src_block.metadata.get_ref()).unwrap();
+			let src_key = src_pos.to_block_key();
+			let (src_block, src_meta) = opt_unwrap_or!(
+				get_cached(idb, &mut src_block_cache, src_key)
+					.map(Result::ok).flatten()
+					.and_then(|b|
+						NodeMetadataList::deserialize(b.metadata.get_ref())
+							.ok().map(|m| (b, m))
+					),
+				continue
+			);
 
 			let src_frag_abs = area_abs_block_overlap(&src_part_abs, src_pos)
 				.unwrap();
@@ -159,7 +187,7 @@ fn overlay_with_offset(inst: &mut InstBundle) {
 
 		clean_name_id_map(&mut dst_block);
 		*dst_block.metadata.get_mut() = dst_meta.serialize(dst_block.version);
-		inst.db.set_block(key, &dst_block.serialize()).unwrap();
+		inst.db.set_block(dst_key, &dst_block.serialize()).unwrap();
 	}
 
 	inst.status.end_editing();
@@ -186,6 +214,6 @@ pub fn get_command() -> Command {
 			(ArgType::Invert, "Overlay all nodes outside the given area"),
 			(ArgType::Offset(false), "Vector to offset nodes by"),
 		],
-		help: "Copy part or all of one map into another."
+		help: "Copy part or all of one world/map into another."
 	}
 }

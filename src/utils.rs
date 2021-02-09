@@ -5,8 +5,7 @@ use memmem::{Searcher, TwoWaySearcher};
 use byteorder::{WriteBytesExt, BigEndian};
 
 use crate::instance::{InstState, StatusServer};
-use crate::map_block::MapBlock;
-use crate::map_database::{MapDatabase, DBError};
+use crate::map_database::MapDatabase;
 use crate::spatial::{Area, Vec3};
 
 
@@ -101,36 +100,6 @@ impl<K: Eq + std::hash::Hash + Clone, V> CacheMap<K, V> {
 }
 
 
-pub struct CachedMapDatabase<'a, 'b> {
-	db: &'a mut MapDatabase<'b>,
-	cache: CacheMap<i64, Option<MapBlock>>
-}
-
-impl<'a, 'b> CachedMapDatabase<'a, 'b> {
-	pub fn new(db: &'a mut MapDatabase<'b>, cap: usize) -> Self {
-		Self { db, cache: CacheMap::with_capacity(cap) }
-	}
-
-	pub fn get_block(&mut self, key: i64) -> Option<MapBlock> {
-		if let Some(block) = self.cache.get(&key) {
-			block.clone()
-		} else {
-			let data = self.db.get_block(key).ok();
-			let block = match data {
-				Some(d) => MapBlock::deserialize(&d).ok(),
-				None => None
-			};
-			self.cache.insert(key, block.clone());
-			block
-		}
-	}
-
-	pub fn set_block(&mut self, key: i64, data: &[u8]) -> Result<(), DBError> {
-		self.db.set_block(key, data)
-	}
-}
-
-
 pub fn to_bytes(s: &String) -> Vec<u8> {
 	s.as_bytes().to_vec()
 }
@@ -150,6 +119,17 @@ macro_rules! unwrap_or {
 		match $res {
 			Ok(val) => val,
 			Err(_) => $alt
+		}
+	}
+}
+
+
+#[macro_export]
+macro_rules! opt_unwrap_or {
+	($res:expr, $alt:expr) => {
+		match $res {
+			Some(val) => val,
+			None => $alt
 		}
 	}
 }

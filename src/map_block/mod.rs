@@ -22,7 +22,7 @@ use node_timer::{serialize_timers, deserialize_timers};
 pub use name_id_map::NameIdMap;
 
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum MapBlockError {
 	InvalidVersion,
 	DataError,

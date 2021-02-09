@@ -16,6 +16,9 @@ mod set_param2;
 mod vacuum;
 
 
+pub const BLOCK_CACHE_SIZE: usize = 1024;
+
+
 pub struct Command {
 	pub func: fn(&mut InstBundle),
 	pub verify_args: Option<fn(&InstArgs) -> anyhow::Result<()>>,

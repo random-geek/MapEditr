@@ -1,23 +1,42 @@
-use super::Command;
+use super::{Command, BLOCK_CACHE_SIZE};
 
-use crate::unwrap_or;
+use crate::{unwrap_or, opt_unwrap_or};
 use crate::spatial::{Vec3, area_rel_block_overlap,
 	area_abs_block_overlap};
-use crate::map_block::{MapBlock, is_valid_generated, NodeMetadataList};
+use crate::map_database::MapDatabase;
+use crate::map_block::{MapBlock, MapBlockError, is_valid_generated,
+	NodeMetadataList};
 use crate::block_utils::{merge_blocks, merge_metadata, clean_name_id_map};
 use crate::instance::{ArgType, InstBundle};
-use crate::utils::{CacheMap, CachedMapDatabase, query_keys};
+use crate::utils::{CacheMap, query_keys};
 use crate::time_keeper::TimeKeeper;
 
 
-// TODO: This and overlay--cache mapblocks in deserialized form.
+type BlockResult = Option<Result<MapBlock, MapBlockError>>;
+
+fn get_cached(
+	db: &mut MapDatabase,
+	cache: &mut CacheMap<i64, BlockResult>,
+	key: i64
+) -> BlockResult {
+	match cache.get(&key) {
+		Some(data) => data.clone(),
+		None => {
+			let block = db.get_block(key).ok()
+				.filter(|d| is_valid_generated(d))
+				.map(|d| MapBlock::deserialize(&d));
+			cache.insert(key, block.clone());
+			block
+		}
+	}
+}
 
 
 fn clone(inst: &mut InstBundle) {
 	let src_area = inst.args.area.unwrap();
 	let offset = inst.args.offset.unwrap();
 	let dst_area = src_area + offset;
-	let mut keys = query_keys(&mut inst.db, &inst.status,
+	let mut dst_keys = query_keys(&mut inst.db, &inst.status,
 		&[], Some(dst_area), false, true);
 
 	// Sort blocks according to offset such that we don't read blocks that
@@ -26,25 +45,27 @@ fn clone(inst: &mut InstBundle) {
 	// Subtract one from inverted axes to keep values from overflowing.
 	let sort_offset = sort_dir.map(|v| if v == -1 { -1 } else { 0 });
 
-	keys.sort_unstable_by_key(|k| {
+	dst_keys.sort_unstable_by_key(|k| {
 		(Vec3::from_block_key(*k) * sort_dir + sort_offset).to_block_key()
 	});
 
-	// let mut db = CachedMapDatabase::new(&mut inst.db, 256);
-	let mut block_cache = CacheMap::<i64, MapBlock>::with_capacity(256);
+	let mut block_cache = CacheMap::with_capacity(BLOCK_CACHE_SIZE);
 	let mut tk = TimeKeeper::new();
 
 	inst.status.begin_editing();
-	for dst_key in keys {
+	for dst_key in dst_keys {
 		inst.status.inc_done();
 
-		let dst_data = inst.db.get_block(dst_key).unwrap();
-		if !is_valid_generated(&dst_data) {
-			continue;
-		}
-		let mut dst_block = MapBlock::deserialize(&dst_data).unwrap();
-		let mut dst_meta = NodeMetadataList::deserialize(
-			dst_block.metadata.get_ref()).unwrap();
+		let (mut dst_block, mut dst_meta) = unwrap_or!(
+			opt_unwrap_or!(
+				get_cached(&mut inst.db, &mut block_cache, dst_key),
+				continue
+			).and_then(|b|
+				NodeMetadataList::deserialize(b.metadata.get_ref())
+					.map(|m| (b, m))
+			),
+			{ inst.status.inc_failed(); continue; }
+		);
 
 		let dst_pos = Vec3::from_block_key(dst_key);
 		let dst_part_abs = area_abs_block_overlap(&dst_area, dst_pos)
@@ -57,22 +78,15 @@ fn clone(inst: &mut InstBundle) {
 				continue;
 			}
 			let src_key = src_pos.to_block_key();
-			let src_block = if let Some(block) = block_cache.get(&src_key) {
-				let _t = tk.get_timer("get_block (cached)");
-				block.clone()
-			} else {
-				let _t = tk.get_timer("get_block (database)");
-				let src_data = unwrap_or!(inst.db.get_block(src_key),
-					continue);
-				if !is_valid_generated(&src_data) {
-					continue;
-				}
-				let src_block = MapBlock::deserialize(&src_data).unwrap();
-				block_cache.insert(src_key, src_block.clone());
-				src_block
-			};
-			let src_meta = NodeMetadataList::deserialize(
-				&src_block.metadata.get_ref()).unwrap();
+			let (src_block, src_meta) = opt_unwrap_or!(
+				get_cached(&mut inst.db, &mut block_cache, src_key)
+					.map(Result::ok).flatten()
+					.and_then(|b|
+						NodeMetadataList::deserialize(b.metadata.get_ref())
+							.ok().map(|m| (b, m))
+					),
+				continue
+			);
 
 			let src_frag_abs = area_abs_block_overlap(&src_part_abs, src_pos)
 				.unwrap();
@@ -112,8 +126,8 @@ pub fn get_command() -> Command {
 		verify_args: None,
 		args: vec![
 			(ArgType::Area(true), "Area to clone"),
-			(ArgType::Offset(true), "Vector to shift nodes by")
+			(ArgType::Offset(true), "Vector to shift the area by")
 		],
-		help: "Clone a given area to a new location."
+		help: "Clone (copy) a given area to a new location."
 	}
 }

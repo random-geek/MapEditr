@@ -317,10 +317,12 @@ pub fn spawn_compute_thread(args: InstArgs)
 	-> (std::thread::JoinHandle<()>, StatusClient)
 {
 	let (status_tx, status_rx) = status_channel();
+	// Clone within this thread to avoid issue #39364 (hopefully).
+	let status_tx_2 = status_tx.clone();
 	let h = std::thread::Builder::new()
 		.name("compute".to_string())
 		.spawn(move || {
-			compute_thread(args, status_tx.clone()).unwrap_or_else(
+			compute_thread(args, status_tx_2).unwrap_or_else(
 				|err| status_tx.log_error(&err.to_string())
 			);
 		})

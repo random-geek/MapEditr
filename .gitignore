@@ -1,2 +1,6 @@
 /target
 **/*.rs.bk
+
+# VSCode stuff
+/.vscode
+*.code_workspace

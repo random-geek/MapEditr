@@ -53,16 +53,17 @@ WorldEdit `//fixlight` command.
 
 Usage: `clone --p1 x y z --p2 x y z --offset x y z`
 
-Clone (copy) the given area to a new location.
+Clone (copy) a given area to a new location.
 
 Arguments:
 
-- `--p1, --p2`: Area to copy from.
-- `--offset`: Offset to shift the area by. For example, to copy an area 50
-nodes upward (positive Y direction), use `--offset 0 50 0`.
+- `--p1, --p2`: Area to clone.
+- `--offset`: Vector to shift the area by. For example, to copy an area 50
+nodes downward (negative Y direction), use `--offset 0 -50 0`. Directions may
+be determined using Minetest's F5 debug menu.
 
 This command copies nodes, param1, param2, and metadata. Nothing will be copied
-into mapblocks that are not yet generated.
+from or into mapblocks that are not yet generated.
 
 ### deleteblocks
 
