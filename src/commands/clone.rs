@@ -60,10 +60,10 @@ fn clone(inst: &mut InstBundle) {
 			opt_unwrap_or!(
 				get_cached(&mut inst.db, &mut block_cache, dst_key),
 				continue
-			).and_then(|b|
-				NodeMetadataList::deserialize(b.metadata.get_ref())
-					.map(|m| (b, m))
-			),
+			).and_then(|b| -> Result<_, MapBlockError> {
+				let m = NodeMetadataList::deserialize(b.metadata.get_ref())?;
+				Ok((b, m))
+			}),
 			{ inst.status.inc_failed(); continue; }
 		);
 
@@ -79,12 +79,13 @@ fn clone(inst: &mut InstBundle) {
 			}
 			let src_key = src_pos.to_block_key();
 			let (src_block, src_meta) = opt_unwrap_or!(
-				get_cached(&mut inst.db, &mut block_cache, src_key)
-					.map(Result::ok).flatten()
-					.and_then(|b|
-						NodeMetadataList::deserialize(b.metadata.get_ref())
-							.ok().map(|m| (b, m))
-					),
+				|| -> Option<_> {
+					let b = get_cached(
+						&mut inst.db, &mut block_cache, src_key)?.ok()?;
+					let m = NodeMetadataList::deserialize(b.metadata.get_ref())
+						.ok()?;
+					Some((b, m))
+				}(),
 				continue
 			);
 

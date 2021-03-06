@@ -62,7 +62,7 @@ fn do_replace(
 
 		// Replacement node not yet in name-ID map; insert it.
 		if new_replace_id && new_node_present {
-			block.nimap.insert(replace_id, new_node);
+			block.nimap.0.insert(replace_id, new_node.to_vec());
 		}
 
 		// Search node was completely eliminated; shift IDs down.
@@ -72,7 +72,7 @@ fn do_replace(
 					nd.nodes[i] -= 1;
 				}
 			}
-			block.nimap.remove(search_id);
+			block.nimap.remove_shift(search_id);
 		}
 	}
 	// Replace nodes in whole map block.
@@ -81,7 +81,7 @@ fn do_replace(
 		if let Some(mut replace_id) = block.nimap.get_id(new_node) {
 			let _t = tk.get_timer("replace (non-unique replacement)");
 			// Delete unused ID from name-ID map and shift IDs down.
-			block.nimap.remove(search_id);
+			block.nimap.remove_shift(search_id);
 			// Shift replacement ID, if necessary.
 			replace_id -= (replace_id > search_id) as u16;
 
@@ -104,7 +104,7 @@ fn do_replace(
 			for id in &nd.nodes {
 				count += (*id == search_id) as u64;
 			}
-			block.nimap.insert(search_id, new_node);
+			block.nimap.0.insert(search_id, new_node.to_vec());
 		}
 	}
 	count

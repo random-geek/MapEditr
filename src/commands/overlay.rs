@@ -1,12 +1,12 @@
 use super::{Command, BLOCK_CACHE_SIZE};
 
-use crate::opt_unwrap_or;
+use crate::{unwrap_or, opt_unwrap_or};
 use crate::spatial::{Vec3, Area, area_rel_block_overlap,
 	area_abs_block_overlap, area_contains_block, area_touches_block};
 use crate::instance::{ArgType, InstArgs, InstBundle};
 use crate::map_database::MapDatabase;
-use crate::map_block::{MapBlock, MapBlockError, NodeMetadataList,
-	is_valid_generated};
+use crate::map_block::{MapBlock, NodeMetadataList, is_valid_generated,
+	MapBlockError};
 use crate::block_utils::{merge_blocks, merge_metadata, clean_name_id_map};
 use crate::utils::{query_keys, CacheMap};
 
@@ -29,11 +29,12 @@ fn verify_args(args: &InstArgs) -> anyhow::Result<()> {
 /// - Area + Invert
 #[inline]
 fn overlay_no_offset(inst: &mut InstBundle) {
-	let mut idb = inst.idb.as_mut().unwrap();
+	let db = &mut inst.db;
+	let idb = inst.idb.as_mut().unwrap();
 	let invert = inst.args.invert;
 
 	// Get keys from input database.
-	let keys = query_keys(&mut idb, &inst.status,
+	let keys = query_keys(idb, &inst.status,
 		&[], inst.args.area, invert, true);
 	inst.status.begin_editing();
 
@@ -48,50 +49,54 @@ fn overlay_no_offset(inst: &mut InstBundle) {
 			{ // If possible, copy whole map block.
 				let data = idb.get_block(key).unwrap();
 				if is_valid_generated(&data) {
-					inst.db.set_block(key, &data).unwrap();
+					db.set_block(key, &data).unwrap();
 				}
 			} else { // Copy part of map block
-				let dst_data = match inst.db.get_block(key) {
-					Ok(d) => if is_valid_generated(&d) {
-						d
+				let res = || -> Result<(), MapBlockError> {
+					let dst_data = opt_unwrap_or!(
+						db.get_block(key).ok()
+							.filter(|d| is_valid_generated(&d)),
+						return Ok(()));
+					let src_data = idb.get_block(key).unwrap();
+
+					let mut src_block = MapBlock::deserialize(&src_data)?;
+					let mut dst_block = MapBlock::deserialize(&dst_data)?;
+					let mut src_meta = NodeMetadataList::deserialize(
+						&src_block.metadata.get_ref())?;
+					let mut dst_meta = NodeMetadataList::deserialize(
+						&dst_block.metadata.get_ref())?;
+
+					let block_part = area_rel_block_overlap(&area, pos)
+						.unwrap();
+					if invert {
+						// For inverted selections, reverse the order of the
+						// overlay operations.
+						merge_blocks(&dst_block, &mut src_block,
+							block_part, block_part);
+						merge_metadata(&dst_meta, &mut src_meta,
+							block_part, block_part);
+						clean_name_id_map(&mut src_block);
+						db.set_block(key, &src_block.serialize()).unwrap();
 					} else {
-						continue;
-					},
-					Err(_) => continue
-				};
-				let src_data = idb.get_block(key).unwrap();
+						merge_blocks(&src_block, &mut dst_block,
+							block_part, block_part);
+						merge_metadata(&src_meta, &mut dst_meta,
+							block_part, block_part);
+						clean_name_id_map(&mut dst_block);
+						db.set_block(key, &dst_block.serialize()).unwrap();
+					}
+					Ok(())
+				}();
 
-				let mut src_block = MapBlock::deserialize(&src_data).unwrap();
-				let mut dst_block = MapBlock::deserialize(&dst_data).unwrap();
-				let mut src_meta = NodeMetadataList::deserialize(
-					&src_block.metadata.get_ref()).unwrap();
-				let mut dst_meta = NodeMetadataList::deserialize(
-					&dst_block.metadata.get_ref()).unwrap();
-
-				let block_part = area_rel_block_overlap(&area, pos).unwrap();
-				if invert {
-					// For inverted selections, reverse the order of the
-					// overlay operations.
-					merge_blocks(&dst_block, &mut src_block,
-						block_part, block_part);
-					merge_metadata(&dst_meta, &mut src_meta,
-						block_part, block_part);
-					clean_name_id_map(&mut src_block);
-					inst.db.set_block(key, &src_block.serialize()).unwrap();
-				} else {
-					merge_blocks(&src_block, &mut dst_block,
-						block_part, block_part);
-					merge_metadata(&src_meta, &mut dst_meta,
-						block_part, block_part);
-					clean_name_id_map(&mut dst_block);
-					inst.db.set_block(key, &dst_block.serialize()).unwrap();
+				if res.is_err() {
+					inst.status.inc_failed()
 				}
 			}
 		} else {
 			// No area; copy whole map block.
 			let data = idb.get_block(key).unwrap();
 			if is_valid_generated(&data) {
-				inst.db.set_block(key, &data).unwrap();
+				db.set_block(key, &data).unwrap();
 			}
 		}
 	}
@@ -100,19 +105,17 @@ fn overlay_no_offset(inst: &mut InstBundle) {
 }
 
 
-type BlockResult = Option<Result<MapBlock, MapBlockError>>;
-
 fn get_cached(
 	db: &mut MapDatabase,
-	cache: &mut CacheMap<i64, BlockResult>,
+	cache: &mut CacheMap<i64, Option<MapBlock>>,
 	key: i64
-) -> BlockResult {
+) -> Option<MapBlock> {
 	match cache.get(&key) {
 		Some(data) => data.clone(),
 		None => {
 			let block = db.get_block(key).ok()
 				.filter(|d| is_valid_generated(d))
-				.map(|d| MapBlock::deserialize(&d));
+				.and_then(|d| MapBlock::deserialize(&d).ok());
 			cache.insert(key, block.clone());
 			block
 		}
@@ -143,11 +146,12 @@ fn overlay_with_offset(inst: &mut InstBundle) {
 			inst.db.get_block(dst_key).ok().filter(|d| is_valid_generated(d)),
 			continue
 		);
-		let (mut dst_block, mut dst_meta) = opt_unwrap_or!(
-			MapBlock::deserialize(&dst_data).ok().and_then(|b|
-				NodeMetadataList::deserialize(b.metadata.get_ref())
-					.ok().map(|m| (b, m))
-			),
+		let (mut dst_block, mut dst_meta) = unwrap_or!(
+			|| -> Result<_, MapBlockError> {
+				let b = MapBlock::deserialize(&dst_data)?;
+				let m = NodeMetadataList::deserialize(b.metadata.get_ref())?;
+				Ok((b, m))
+			}(),
 			{ inst.status.inc_failed(); continue; }
 		);
 
@@ -164,12 +168,12 @@ fn overlay_with_offset(inst: &mut InstBundle) {
 			}
 			let src_key = src_pos.to_block_key();
 			let (src_block, src_meta) = opt_unwrap_or!(
-				get_cached(idb, &mut src_block_cache, src_key)
-					.map(Result::ok).flatten()
-					.and_then(|b|
-						NodeMetadataList::deserialize(b.metadata.get_ref())
-							.ok().map(|m| (b, m))
-					),
+				|| -> Option<_> {
+					let b = get_cached(idb, &mut src_block_cache, src_key)?;
+					let m = NodeMetadataList::deserialize(b.metadata.get_ref())
+						.ok()?;
+					Some((b, m))
+				}(),
 				continue
 			);
 

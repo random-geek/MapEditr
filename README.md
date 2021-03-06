@@ -1,5 +1,7 @@
 # MapEditr
 
+TODO: Add a license.
+
 MapEditr is a command-line tool for relatively fast manipulation of Minetest
 worlds. It can replace nodes, fill areas, combine parts of different worlds,
 and much more.

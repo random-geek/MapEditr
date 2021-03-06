@@ -12,6 +12,8 @@ pub fn is_valid_generated(data: &[u8]) -> bool {
 }
 
 
+// TODO: Allocation limit for everything to prevent crashes with bad data.
+// TODO: Make sure all data structures are the best choice.
 #[derive(Debug, Clone)]
 pub struct MapBlock {
 	pub version: u8,

@@ -3,7 +3,7 @@ use super::Command;
 use crate::unwrap_or;
 use crate::spatial::{Vec3, Area, area_rel_block_overlap, area_contains_block};
 use crate::instance::{ArgType, InstBundle};
-use crate::map_block::{MapBlock};
+use crate::map_block::MapBlock;
 use crate::block_utils::clean_name_id_map;
 use crate::utils::{query_keys, to_bytes, fmt_big_num};
 
@@ -47,14 +47,14 @@ fn fill(inst: &mut InstBundle) {
 			for x in &mut nd.nodes {
 				*x = 0;
 			}
-			block.nimap.map.clear();
-			block.nimap.insert(0, &node);
+			block.nimap.0.clear();
+			block.nimap.0.insert(0, node.to_vec());
 			count += nd.nodes.len() as u64;
 		} else {
 			let slice = area_rel_block_overlap(&area, pos).unwrap();
 			let fill_id = block.nimap.get_id(&node).unwrap_or_else(|| {
 				let next = block.nimap.get_max_id().unwrap() + 1;
-				block.nimap.insert(next, &node);
+				block.nimap.0.insert(next, node.to_vec());
 				next
 			});
 			fill_area(&mut block, slice, fill_id);

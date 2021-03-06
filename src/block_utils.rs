@@ -14,6 +14,9 @@ fn block_parts_valid(a: &Area, b: &Area) -> bool {
 }
 
 
+/// Copy an area of nodes from one mapblock to another.
+///
+/// Will not remove duplicate/unused name IDs.
 pub fn merge_blocks(
 	src_block: &MapBlock,
 	dst_block: &mut MapBlock,
@@ -24,14 +27,14 @@ pub fn merge_blocks(
 
 	let src_nd = src_block.node_data.get_ref();
 	let dst_nd = dst_block.node_data.get_mut();
-
 	let offset = dst_area.min - src_area.min;
 	// Warning: diff can be negative!
 	let diff = offset.x + offset.y * 16 + offset.z * 256;
 
+	// Copy name-ID mappings
 	let nimap_diff = dst_block.nimap.get_max_id().unwrap() + 1;
-	for (&id, name) in &src_block.nimap.map {
-		dst_block.nimap.insert(id + nimap_diff, name)
+	for (id, name) in &src_block.nimap.0 {
+		dst_block.nimap.0.insert(id + nimap_diff, name.to_vec());
 	}
 
 	// Copy node IDs
@@ -65,6 +68,7 @@ pub fn merge_blocks(
 }
 
 
+/// Copy an area of node metadata from one mapblock to another.
 pub fn merge_metadata(
 	src_meta: &NodeMetadataList,
 	dst_meta: &mut NodeMetadataList,
@@ -119,7 +123,7 @@ pub fn clean_name_id_map(block: &mut MapBlock) {
 			continue;
 		}
 
-		let name = &block.nimap.map[&(id as u16)];
+		let name = &block.nimap.0[&(id as u16)];
 		if let Some(first_id) = new_nimap.iter().position(|(_, v)| v == name) {
 			// Name is already in the map; map old, duplicate ID to the
 			// existing ID.
@@ -131,7 +135,7 @@ pub fn clean_name_id_map(block: &mut MapBlock) {
 			map[id] = new_nimap.len() as u16 - 1;
 		}
 	}
-	block.nimap.map = new_nimap;
+	block.nimap.0 = new_nimap;
 
 	// Re-assign node IDs.
 	for id in &mut nd.nodes {

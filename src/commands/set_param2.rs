@@ -2,7 +2,7 @@ use super::Command;
 
 use crate::spatial::{Vec3, Area, area_rel_block_overlap, area_contains_block};
 use crate::instance::{ArgType, InstArgs, InstBundle};
-use crate::map_block::{MapBlock};
+use crate::map_block::MapBlock;
 use crate::utils::{query_keys, to_bytes, to_slice, fmt_big_num};
 
 
