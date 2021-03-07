@@ -1,4 +1,5 @@
 use super::*;
+use std::cmp::min;
 
 
 #[derive(Debug, Clone)]
@@ -21,9 +22,10 @@ pub fn deserialize_timers(src: &mut Cursor<&[u8]>)
 	}
 
 	let count = src.read_u16::<BigEndian>()?;
-	let mut timers = Vec::with_capacity(count as usize);
+	// Limit allocation to number of nodes (bad data handling).
+	let mut timers = Vec::with_capacity(min(count, 4096) as usize);
 
-	for _ in 0 .. count {
+	for _ in 0..count {
 		let pos = src.read_u16::<BigEndian>()?;
 		let timeout = src.read_u32::<BigEndian>()?;
 		let elapsed = src.read_u32::<BigEndian>()?;

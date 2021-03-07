@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+use super::*;
+
+use std::collections::{HashMap, BTreeMap};
 use std::cmp::min;
 
 use memmem::{Searcher, TwoWaySearcher};
-
-use super::*;
 
 
 #[derive(Debug, Clone)]
@@ -17,8 +17,8 @@ impl NodeMetadata {
 		-> Result<Self, MapBlockError>
 	{
 		let var_count = data.read_u32::<BigEndian>()?;
-		// Avoid memory allocation errors with corrupt data.
-		let mut vars = HashMap::with_capacity(min(var_count as usize, 0xFFFF));
+		// Avoid allocating huge numbers of variables (bad data handling).
+		let mut vars = HashMap::with_capacity(min(var_count as usize, 64));
 
 		for _ in 0..var_count {
 			let name = read_string16(data)?;
@@ -38,14 +38,12 @@ impl NodeMetadata {
 		let mut inv = vec_with_len(end + END_STR.len());
 		data.read_exact(&mut inv)?;
 
-		Ok(Self {
-			vars,
-			inv
-		})
+		Ok(Self { vars, inv })
 	}
 
 	fn serialize(&self, data: &mut Cursor<Vec<u8>>, version: u8) {
 		data.write_u32::<BigEndian>(self.vars.len() as u32).unwrap();
+
 		for (name, (val, private)) in &self.vars {
 			write_string16(data, name);
 			write_string32(data, &val);
@@ -59,16 +57,18 @@ impl NodeMetadata {
 }
 
 
-#[derive(Debug)]
-pub struct NodeMetadataList {
-	// TODO: Switch to BTreeMap or something more stable
-	// TODO: This is just a wrapper struct, switch to a type alias?
-	pub list: HashMap<u16, NodeMetadata>
+pub trait NodeMetadataListExt {
+	fn deserialize(src: &[u8]) -> Result<Self, MapBlockError>
+		where Self: std::marker::Sized;
+	fn serialize(&self, block_version: u8) -> Vec<u8>;
 }
 
-impl NodeMetadataList {
-	pub fn deserialize(data_slice: &[u8]) -> Result<Self, MapBlockError> {
-		let mut data = Cursor::new(data_slice);
+
+pub type NodeMetadataList = BTreeMap<u16, NodeMetadata>;
+
+impl NodeMetadataListExt for NodeMetadataList {
+	fn deserialize(src: &[u8]) -> Result<Self, MapBlockError> {
+		let mut data = Cursor::new(src);
 
 		let version = data.read_u8()?;
 		if version > 2 {
@@ -80,28 +80,28 @@ impl NodeMetadataList {
 			_ => data.read_u16::<BigEndian>()?
 		};
 
-		let mut list = HashMap::with_capacity(count as usize);
+		let mut list = BTreeMap::new();
 		for _ in 0..count {
 			let pos = data.read_u16::<BigEndian>()?;
 			let meta = NodeMetadata::deserialize(&mut data, version)?;
 			list.insert(pos, meta);
 		}
 
-		Ok(Self { list })
+		Ok(list)
 	}
 
-	pub fn serialize(&self, block_version: u8) -> Vec<u8> {
+	fn serialize(&self, block_version: u8) -> Vec<u8> {
 		let buf = Vec::new();
 		let mut data = Cursor::new(buf);
 
-		if self.list.len() == 0 {
+		if self.len() == 0 {
 			data.write_u8(0).unwrap();
 		} else {
 			let version = if block_version >= 28 { 2 } else { 1 };
 			data.write_u8(version).unwrap();
-			data.write_u16::<BigEndian>(self.list.len() as u16).unwrap();
+			data.write_u16::<BigEndian>(self.len() as u16).unwrap();
 
-			for (&pos, meta) in &self.list {
+			for (&pos, meta) in self {
 				data.write_u16::<BigEndian>(pos).unwrap();
 				meta.serialize(&mut data, version);
 			}

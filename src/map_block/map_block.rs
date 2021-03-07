@@ -6,14 +6,12 @@ const BLOCK_BUF_SIZE: usize = 2048;
 
 
 pub fn is_valid_generated(data: &[u8]) -> bool {
-	data.len() > 2
+	data.len() >= 2
 		&& MIN_BLOCK_VER <= data[0] && data[0] <= MAX_BLOCK_VER
 		&& data[1] & 0x08 == 0
 }
 
 
-// TODO: Allocation limit for everything to prevent crashes with bad data.
-// TODO: Make sure all data structures are the best choice.
 #[derive(Debug, Clone)]
 pub struct MapBlock {
 	pub version: u8,
@@ -30,8 +28,8 @@ pub struct MapBlock {
 }
 
 impl MapBlock {
-	pub fn deserialize(data_slice: &[u8]) -> Result<Self, MapBlockError> {
-		let mut data = Cursor::new(data_slice);
+	pub fn deserialize(src: &[u8]) -> Result<Self, MapBlockError> {
+		let mut data = Cursor::new(src);
 
 		// Version
 		let version = data.read_u8()?;

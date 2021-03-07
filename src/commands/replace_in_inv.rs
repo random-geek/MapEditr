@@ -3,7 +3,7 @@ use super::Command;
 use crate::unwrap_or;
 use crate::spatial::Vec3;
 use crate::instance::{ArgType, InstArgs, InstBundle};
-use crate::map_block::{MapBlock, NodeMetadataList};
+use crate::map_block::{MapBlock, NodeMetadataList, NodeMetadataListExt};
 use crate::utils::{query_keys, to_bytes, fmt_big_num};
 
 const NEWLINE: u8 = b'\n';
@@ -94,7 +94,7 @@ fn replace_in_inv(inst: &mut InstBundle) {
 		let block_corner = Vec3::from_block_key(key) * 16;
 		let mut modified = false;
 
-		for (&idx, data) in &mut meta.list {
+		for (&idx, data) in &mut meta {
 			let pos = Vec3::from_u16_key(idx);
 			let abs_pos = pos + block_corner;
 			if let Some(a) = inst.args.area {

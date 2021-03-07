@@ -3,7 +3,7 @@ use super::Command;
 use crate::unwrap_or;
 use crate::spatial::Vec3;
 use crate::instance::{ArgType, InstBundle};
-use crate::map_block::{MapBlock, NodeMetadataList};
+use crate::map_block::{MapBlock, NodeMetadataList, NodeMetadataListExt};
 use crate::utils::{query_keys, to_bytes, fmt_big_num};
 
 
@@ -36,7 +36,7 @@ fn set_meta_var(inst: &mut InstBundle) {
 		let block_corner = Vec3::from_block_key(block_key) * 16;
 		let mut modified = false;
 
-		for (&idx, data) in &mut meta.list {
+		for (&idx, data) in &mut meta {
 			let pos = Vec3::from_u16_key(idx);
 			let abs_pos = pos + block_corner;
 

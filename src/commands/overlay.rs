@@ -5,8 +5,8 @@ use crate::spatial::{Vec3, Area, area_rel_block_overlap,
 	area_abs_block_overlap, area_contains_block, area_touches_block};
 use crate::instance::{ArgType, InstArgs, InstBundle};
 use crate::map_database::MapDatabase;
-use crate::map_block::{MapBlock, NodeMetadataList, is_valid_generated,
-	MapBlockError};
+use crate::map_block::{MapBlock, MapBlockError, is_valid_generated,
+	NodeMetadataList, NodeMetadataListExt};
 use crate::block_utils::{merge_blocks, merge_metadata, clean_name_id_map};
 use crate::utils::{query_keys, CacheMap};
 

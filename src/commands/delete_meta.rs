@@ -3,7 +3,7 @@ use super::Command;
 use crate::unwrap_or;
 use crate::spatial::Vec3;
 use crate::instance::{ArgType, InstBundle};
-use crate::map_block::{MapBlock, NodeMetadataList};
+use crate::map_block::{MapBlock, NodeMetadataList, NodeMetadataListExt};
 use crate::utils::{query_keys, to_bytes, to_slice, fmt_big_num};
 
 
@@ -31,9 +31,9 @@ fn delete_metadata(inst: &mut InstBundle) {
 			NodeMetadataList::deserialize(block.metadata.get_ref()), continue);
 
 		let block_corner = Vec3::from_block_key(key) * 16;
-		let mut to_delete = Vec::with_capacity(meta.list.len());
+		let mut to_delete = Vec::with_capacity(meta.len());
 
-		for (&idx, _) in &meta.list {
+		for (&idx, _) in &meta {
 			let pos = Vec3::from_u16_key(idx);
 			let abs_pos = pos + block_corner;
 
@@ -54,7 +54,7 @@ fn delete_metadata(inst: &mut InstBundle) {
 		if !to_delete.is_empty() {
 			count += to_delete.len() as u64;
 			for idx in &to_delete {
-				meta.list.remove(idx);
+				meta.remove(idx);
 			}
 			*block.metadata.get_mut() = meta.serialize(block.version);
 			inst.db.set_block(key, &block.serialize()).unwrap();

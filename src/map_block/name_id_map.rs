@@ -1,6 +1,5 @@
-use std::collections::BTreeMap;
-
 use super::*;
+use std::collections::BTreeMap;
 
 
 /// Maps 16-bit node IDs to actual node names.
@@ -21,7 +20,7 @@ impl NameIdMap {
 		let count = data.read_u16::<BigEndian>()? as usize;
 		let mut map = BTreeMap::new();
 
-		for _ in 0 .. count {
+		for _ in 0..count {
 			let id = data.read_u16::<BigEndian>()?;
 			let name = read_string16(data)?;
 			map.insert(id, name);
@@ -52,15 +51,13 @@ impl NameIdMap {
 		self.0.iter().next_back().map(|(&k, _)| k)
 	}
 
-	/// Remove the name at a given ID and shift down values above it.
+	/// Remove the name at a given ID and shift down any values above it.
 	pub fn remove_shift(&mut self, id: u16) {
 		self.0.remove(&id);
-		let mut next_id = id + 1;
-
-		while self.0.contains_key(&next_id) {
-			let name = self.0.remove(&next_id).unwrap();
-			self.0.insert(next_id - 1, name);
-			next_id += 1;
+		for k in id + 1 ..= self.get_max_id().unwrap_or(0) {
+			if let Some(name) = self.0.remove(&k) {
+				self.0.insert(k - 1, name);
+			}
 		}
 	}
 }

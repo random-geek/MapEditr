@@ -1,5 +1,6 @@
 use super::*;
 use crate::spatial::Vec3;
+use std::cmp::min;
 
 
 #[derive(Clone, Debug)]
@@ -43,8 +44,9 @@ pub fn deserialize_objects(src: &mut Cursor<&[u8]>)
 	}
 
 	let count = src.read_u16::<BigEndian>()?;
-	let mut list = Vec::with_capacity(count as usize);
-	for _ in 0 .. count {
+	// Limit allocation to MT's default max object count (bad data handling).
+	let mut list = Vec::with_capacity(min(count, 64) as usize);
+	for _ in 0..count {
 		list.push(StaticObject::deserialize(src)?);
 	}
 

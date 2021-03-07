@@ -1,8 +1,8 @@
+use super::*;
+
 use flate2::write::ZlibEncoder;
 use flate2::read::ZlibDecoder;
 use flate2::Compression;
-
-use super::*;
 
 
 const BLOCK_SIZE: usize = 16;
@@ -20,12 +20,11 @@ impl Compress for NodeData {
 	fn compress(&self, dst: &mut Cursor<Vec<u8>>) {
 		let mut encoder = ZlibEncoder::new(dst, Compression::default());
 
-		let mut node_data = Vec::with_capacity(NODE_COUNT * 2);
-		unsafe { node_data.set_len(NODE_COUNT * 2) }
+		let mut node_bytes = vec_with_len(NODE_COUNT * 2);
 		BigEndian::write_u16_into(&self.nodes,
-			&mut node_data[.. NODE_COUNT * 2]);
+			&mut node_bytes[..NODE_COUNT * 2]);
 
-		encoder.write_all(&node_data).unwrap();
+		encoder.write_all(&node_bytes).unwrap();
 		encoder.write_all(&self.param1).unwrap();
 		encoder.write_all(&self.param2).unwrap();
 		encoder.finish().unwrap();

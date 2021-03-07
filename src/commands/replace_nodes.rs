@@ -41,9 +41,9 @@ fn do_replace(
 		let mut new_node_present = false;
 
 		let nd = block.node_data.get_mut();
-		for z in 0 .. 16 {
-			for y in 0 .. 16 {
-				for x in 0 .. 16 {
+		for z in 0..16 {
+			for y in 0..16 {
+				for x in 0..16 {
 					if nd.nodes[idx] == search_id
 						&& node_area.contains(Vec3 {x, y, z}) != invert
 					{

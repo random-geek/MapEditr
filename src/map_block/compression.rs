@@ -59,10 +59,12 @@ impl<T: Compress> ZlibContainer<T> {
 		}
 	}
 
+	#[inline]
 	pub fn get_ref(&self) -> &T {
 		&self.data
 	}
 
+	#[inline]
 	pub fn get_mut(&mut self) -> &mut T {
 		self.compressed = None;
 		&mut self.data

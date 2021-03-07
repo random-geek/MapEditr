@@ -82,22 +82,22 @@ pub fn merge_metadata(
 	let diff = offset.x + offset.y * 16 + offset.z * 256;
 
 	// Delete any existing metadata in the destination block
-	let mut to_delete = Vec::with_capacity(dst_meta.list.len());
-	for (&idx, _) in &dst_meta.list {
+	let mut to_delete = Vec::with_capacity(dst_meta.len());
+	for (&idx, _) in dst_meta.iter() {
 		let pos = Vec3::from_u16_key(idx);
 		if dst_area.contains(pos) {
 			to_delete.push(idx);
 		}
 	}
 	for idx in &to_delete {
-		dst_meta.list.remove(idx);
+		dst_meta.remove(idx);
 	}
 
 	// Copy new metadata
-	for (&idx, meta) in &src_meta.list {
+	for (&idx, meta) in src_meta {
 		let pos = Vec3::from_u16_key(idx);
 		if src_area.contains(pos) {
-			dst_meta.list.insert((idx as i32 + diff) as u16, meta.clone());
+			dst_meta.insert((idx as i32 + diff) as u16, meta.clone());
 		}
 	}
 }
@@ -117,7 +117,7 @@ pub fn clean_name_id_map(block: &mut MapBlock) {
 	// Rebuild the name-ID map.
 	let mut new_nimap = BTreeMap::<u16, Vec<u8>>::new();
 	let mut map = vec![0u16; id_count];
-	for id in 0 .. id_count {
+	for id in 0..id_count {
 		// Skip unused IDs.
 		if !used[id] {
 			continue;
