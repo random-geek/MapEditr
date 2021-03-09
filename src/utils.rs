@@ -38,27 +38,33 @@ pub fn query_keys(
 		if invert == include_partial {
 			a.to_contained_block_area()
 		} else {
-			a.to_touching_block_area()
+			Some(a.to_touching_block_area())
 		}
-	});
+	}).flatten();
+	// True if the given area contains no blocks.
+	let empty_area = area.is_some() && block_area.is_none();
 
-	for (i, (key, data)) in db.iter_rows().enumerate() {
-		if let Some(a) = &block_area {
-			let block_pos = Vec3::from_block_key(key);
-			if a.contains(block_pos) == invert {
+	if !empty_area || invert {
+		for (i, (key, data)) in db.iter_rows().enumerate() {
+			if !empty_area {
+				if let Some(a) = &block_area {
+					let block_pos = Vec3::from_block_key(key);
+					if a.contains(block_pos) == invert {
+						continue;
+					}
+				}
+			}
+			if !data_searchers.is_empty()
+				&& !data_searchers.iter().any(|s| s.search_in(&data).is_some())
+			{ // Data must match at least one search string.
 				continue;
 			}
-		}
-		if !data_searchers.is_empty()
-			&& !data_searchers.iter().any(|s| s.search_in(&data).is_some())
-		{ // Data must match at least one search string.
-			continue;
-		}
-		keys.push(key);
+			keys.push(key);
 
-		// Update total every 1024 iterations.
-		if i & 1023 == 0 {
-			status.set_total(keys.len())
+			// Update total every 1024 iterations.
+			if i & 1023 == 0 {
+				status.set_total(keys.len())
+			}
 		}
 	}
 

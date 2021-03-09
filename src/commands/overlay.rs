@@ -160,7 +160,7 @@ fn overlay_with_offset(inst: &mut InstBundle) {
 		let src_part_abs = dst_part_abs - offset;
 		let src_blocks_needed = src_part_abs.to_touching_block_area();
 
-		for src_pos in src_blocks_needed.iterate() {
+		for src_pos in &src_blocks_needed {
 			if !src_pos.is_valid_block_pos() {
 				continue;
 			}

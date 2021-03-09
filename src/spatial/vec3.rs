@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vec3 {
 	pub x: i32,
 	pub y: i32,
@@ -54,7 +54,9 @@ impl Vec3 {
 			&& -LIMIT <= self.z && self.z <= LIMIT
 	}
 
-	pub fn map(&self, func: fn(i32) -> i32) -> Self {
+	pub fn map<F>(&self, func: F) -> Self
+		where F: Fn(i32) -> i32
+	{
 		Self {
 			x: func(self.x),
 			y: func(self.y),
@@ -148,39 +150,48 @@ mod tests {
 
 	#[test]
 	fn test_vec3() {
-		// Test `new` function
 		assert_eq!(Vec3::new(42, 0, -6000), Vec3 {x: 42, y: 0, z: -6000});
 
+		assert_eq!(Vec3::new(-31000, 50, 31000).is_valid_node_pos(), true);
+		assert_eq!(Vec3::new(-31000, -11, 31001).is_valid_node_pos(), false);
+
+		assert_eq!(Vec3::new(-1937, -5, 1101).is_valid_block_pos(), true);
+		assert_eq!(Vec3::new(-1937, 1938, -10).is_valid_block_pos(), false);
+		assert_eq!(Vec3::new(-1938, 4, 1900).is_valid_block_pos(), false);
+
+		let exp = 3;
+		assert_eq!(Vec3::new(-3, 4, 10).map(|n| n.pow(exp)),
+			Vec3::new(-27, 64, 1000));
+
+		assert_eq!(format!("{}", Vec3::new(-1000, 0, 70)), "(-1000, 0, 70)");
+	}
+
+	#[test]
+	fn test_vec3_conversions() {
 		/* Test block key/vector conversions */
 		const Y_FAC: i64 = 0x1_000;
 		const Z_FAC: i64 = 0x1_000_000;
 		let bk_pairs = [
 			// Basics
-			(Vec3 {x: 0, y: 0, z: 0}, 0),
-			(Vec3 {x: 1, y: 0, z: 0}, 1),
-			(Vec3 {x: 0, y: 1, z: 0}, 1 * Y_FAC),
-			(Vec3 {x: 0, y: 0, z: 1}, 1 * Z_FAC),
+			(Vec3::new(0, 0, 0), 0),
+			(Vec3::new(1, 0, 0), 1),
+			(Vec3::new(0, 1, 0), 1 * Y_FAC),
+			(Vec3::new(0, 0, 1), 1 * Z_FAC),
 			// X/Y/Z Boundaries
-			(Vec3 {x: -2048, y: 0, z: 0}, -2048),
-			(Vec3 {x: 2047, y: 0, z: 0}, 2047),
-			(Vec3 {x: 0, y: -2048, z: 0}, -2048 * Y_FAC),
-			(Vec3 {x: 0, y: 2047, z: 0}, 2047 * Y_FAC),
-			(Vec3 {x: 0, y: 0, z: -2048}, -2048 * Z_FAC),
-			(Vec3 {x: 0, y: 0, z: 2047}, 2047 * Z_FAC),
+			(Vec3::new(-2048, 0, 0), -2048),
+			(Vec3::new(2047, 0, 0), 2047),
+			(Vec3::new(0, -2048, 0), -2048 * Y_FAC),
+			(Vec3::new(0, 2047, 0), 2047 * Y_FAC),
+			(Vec3::new(0, 0, -2048), -2048 * Z_FAC),
+			(Vec3::new(0, 0, 2047), 2047 * Z_FAC),
 			// Extra spicy boundaries
-			(Vec3 {x: -42, y: 2047, z: -99},
-				-42 + 2047 * Y_FAC + -99 * Z_FAC),
-			(Vec3 {x: 64, y: -2048, z: 22},
-				64 + -2048 * Y_FAC + 22 * Z_FAC),
-			(Vec3 {x: 2047, y: 555, z: 35},
-				2047 + 555 * Y_FAC + 35 * Z_FAC),
-			(Vec3 {x: -2048, y: 600, z: -70},
-				-2048 + 600 * Y_FAC + -70 * Z_FAC),
+			(Vec3::new(-42, 2047, -99), -42 + 2047 * Y_FAC + -99 * Z_FAC),
+			(Vec3::new(64, -2048, 22), 64 + -2048 * Y_FAC + 22 * Z_FAC),
+			(Vec3::new(2047, 555, 35), 2047 + 555 * Y_FAC + 35 * Z_FAC),
+			(Vec3::new(-2048, 600, -70), -2048 + 600 * Y_FAC + -70 * Z_FAC),
 			// Multiple boundaries
-			(Vec3 {x: 2047, y: -2048, z: 16},
-				2047 + -2048 * Y_FAC + 16 * Z_FAC),
-			(Vec3 {x: -2048, y: 2047, z: 50},
-				-2048 + 2047 * Y_FAC + 50 * Z_FAC),
+			(Vec3::new(2047, -2048, 16), 2047 + -2048 * Y_FAC + 16 * Z_FAC),
+			(Vec3::new(-2048, 2047, 50), -2048 + 2047 * Y_FAC + 50 * Z_FAC),
 		];
 
 		for pair in &bk_pairs {
