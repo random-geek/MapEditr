@@ -1,8 +1,7 @@
 use super::{Command, BLOCK_CACHE_SIZE};
 
 use crate::{unwrap_or, opt_unwrap_or};
-use crate::spatial::{Vec3, Area, area_rel_block_overlap,
-	area_abs_block_overlap, area_contains_block, area_touches_block};
+use crate::spatial::{Vec3, Area};
 use crate::instance::{ArgType, InstArgs, InstBundle};
 use crate::map_database::MapDatabase;
 use crate::map_block::{MapBlock, MapBlockError, is_valid_generated,
@@ -44,8 +43,8 @@ fn overlay_no_offset(inst: &mut InstBundle) {
 		if let Some(area) = inst.args.area {
 			let pos = Vec3::from_block_key(key);
 
-			if (!invert && area_contains_block(&area, pos))
-				|| (invert && !area_touches_block(&area, pos))
+			if (!invert && area.contains_block(pos))
+				|| (invert && !area.touches_block(pos))
 			{ // If possible, copy whole map block.
 				let data = idb.get_block(key).unwrap();
 				if is_valid_generated(&data) {
@@ -66,8 +65,7 @@ fn overlay_no_offset(inst: &mut InstBundle) {
 					let mut dst_meta = NodeMetadataList::deserialize(
 						&dst_block.metadata.get_ref())?;
 
-					let block_part = area_rel_block_overlap(&area, pos)
-						.unwrap();
+					let block_part = area.rel_block_overlap(pos).unwrap();
 					if invert {
 						// For inverted selections, reverse the order of the
 						// overlay operations.
@@ -157,7 +155,7 @@ fn overlay_with_offset(inst: &mut InstBundle) {
 
 		let dst_part_abs = dst_area.map_or(
 			Area::new(dst_pos * 16, dst_pos * 16 + 15),
-			|ref a| area_abs_block_overlap(a, dst_pos).unwrap()
+			|ref a| a.abs_block_overlap(dst_pos).unwrap()
 		);
 		let src_part_abs = dst_part_abs - offset;
 		let src_blocks_needed = src_part_abs.to_touching_block_area();
@@ -177,11 +175,11 @@ fn overlay_with_offset(inst: &mut InstBundle) {
 				continue
 			);
 
-			let src_frag_abs = area_abs_block_overlap(&src_part_abs, src_pos)
+			let src_frag_abs = src_part_abs.abs_block_overlap(src_pos)
 				.unwrap();
 			let src_frag_rel = src_frag_abs - src_pos * 16;
-			let dst_frag_rel = area_rel_block_overlap(
-				&(src_frag_abs + offset), dst_pos).unwrap();
+			let dst_frag_rel = (src_frag_abs + offset)
+				.rel_block_overlap(dst_pos).unwrap();
 
 			merge_blocks(&src_block, &mut dst_block,
 				src_frag_rel, dst_frag_rel);

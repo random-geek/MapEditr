@@ -1,6 +1,6 @@
 use super::Command;
 
-use crate::spatial::{Vec3, Area, area_rel_block_overlap, area_contains_block};
+use crate::spatial::{Vec3, Area};
 use crate::instance::{ArgType, InstArgs, InstBundle};
 use crate::map_block::MapBlock;
 use crate::utils::{query_keys, to_bytes, to_slice, fmt_big_num};
@@ -66,9 +66,9 @@ fn set_param2(inst: &mut InstBundle) {
 
 		let nd = block.node_data.get_mut();
 		if let Some(area) = inst.args.area
-			.filter(|a| !area_contains_block(&a, pos))
+			.filter(|a| !a.contains_block(pos))
 		{ // Modify part of block
-			let overlap = area_rel_block_overlap(&area, pos).unwrap();
+			let overlap = area.rel_block_overlap(pos).unwrap();
 			if let Some(nid) = node_id {
 				count +=
 					set_in_area_node(&mut block, overlap, nid, param2_val);

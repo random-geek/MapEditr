@@ -99,6 +99,18 @@ impl std::ops::Sub<Self> for Vec3 {
 	}
 }
 
+impl std::ops::Sub<i32> for Vec3 {
+	type Output = Self;
+
+	fn sub(self, rhs: i32) -> Self {
+		Self {
+			x: self.x - rhs,
+			y: self.y - rhs,
+			z: self.z - rhs
+		}
+	}
+}
+
 impl std::ops::Mul<Self> for Vec3 {
 	type Output = Self;
 

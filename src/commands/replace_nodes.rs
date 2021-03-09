@@ -1,7 +1,6 @@
 use super::Command;
 
-use crate::spatial::{Vec3, Area, area_contains_block, area_touches_block,
-	area_rel_block_overlap};
+use crate::spatial::{Vec3, Area};
 use crate::instance::{ArgType, InstArgs, InstBundle};
 use crate::map_block::MapBlock;
 use crate::time_keeper::TimeKeeper;
@@ -22,12 +21,11 @@ fn do_replace(
 	let mut count = 0;
 
 	// Replace nodes in a portion of a map block.
-	if area.is_some() && area_contains_block(&area.unwrap(), block_pos) !=
-		area_touches_block(&area.unwrap(), block_pos)
+	if area.is_some() && area.unwrap().contains_block(block_pos) !=
+		area.unwrap().touches_block(block_pos)
 	{
 		let _t = tk.get_timer("replace (partial block)");
-		let node_area = area_rel_block_overlap(&area.unwrap(), block_pos)
-			.unwrap();
+		let node_area = area.unwrap().rel_block_overlap(block_pos).unwrap();
 
 		let mut new_replace_id = false;
 		let replace_id = block.nimap.get_id(new_node)

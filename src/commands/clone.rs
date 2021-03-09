@@ -1,8 +1,7 @@
 use super::{Command, BLOCK_CACHE_SIZE};
 
 use crate::{unwrap_or, opt_unwrap_or};
-use crate::spatial::{Vec3, area_rel_block_overlap,
-	area_abs_block_overlap};
+use crate::spatial::Vec3;
 use crate::map_database::MapDatabase;
 use crate::map_block::{MapBlock, MapBlockError, is_valid_generated,
 	NodeMetadataList, NodeMetadataListExt};
@@ -68,8 +67,7 @@ fn clone(inst: &mut InstBundle) {
 		);
 
 		let dst_pos = Vec3::from_block_key(dst_key);
-		let dst_part_abs = area_abs_block_overlap(&dst_area, dst_pos)
-			.unwrap();
+		let dst_part_abs = dst_area.abs_block_overlap(dst_pos).unwrap();
 		let src_part_abs = dst_part_abs - offset;
 		let src_blocks_needed = src_part_abs.to_touching_block_area();
 
@@ -89,11 +87,11 @@ fn clone(inst: &mut InstBundle) {
 				continue
 			);
 
-			let src_frag_abs = area_abs_block_overlap(&src_part_abs, src_pos)
+			let src_frag_abs = src_part_abs.abs_block_overlap(src_pos)
 				.unwrap();
 			let src_frag_rel = src_frag_abs - src_pos * 16;
-			let dst_frag_rel = area_rel_block_overlap(
-				&(src_frag_abs + offset), dst_pos).unwrap();
+			let dst_frag_rel = (src_frag_abs + offset)
+				.rel_block_overlap(dst_pos).unwrap();
 
 			{
 				let _t = tk.get_timer("merge");
