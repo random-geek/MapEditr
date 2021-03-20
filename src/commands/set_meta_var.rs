@@ -8,6 +8,7 @@ use crate::utils::{query_keys, to_bytes, fmt_big_num};
 
 
 fn set_meta_var(inst: &mut InstBundle) {
+	// TODO: Bytes input
 	let key = to_bytes(inst.args.key.as_ref().unwrap());
 	let value = to_bytes(inst.args.value.as_ref().unwrap());
 	let nodes: Vec<_> = inst.args.nodes.iter().map(to_bytes).collect();

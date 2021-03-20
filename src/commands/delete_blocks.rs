@@ -10,7 +10,6 @@ fn delete_blocks(inst: &mut InstBundle) {
 	inst.status.begin_editing();
 
 	for key in keys {
-		// TODO: This is kind of inefficient seeming.
 		inst.status.inc_done();
 		inst.db.delete_block(key).unwrap();
 	}
@@ -24,9 +23,10 @@ pub fn get_command() -> Command {
 		func: delete_blocks,
 		verify_args: None,
 		args: vec![
-			(ArgType::Area(true), "Area containing blocks to delete"),
-			(ArgType::Invert, "Delete all blocks *outside* the area")
+			(ArgType::Area(true), "Area containing mapblocks to delete"),
+			(ArgType::Invert,
+				"Delete all mapblocks fully *outside* the given area.")
 		],
-		help: "Delete all map blocks in a given area."
+		help: "Delete all mapblocks inside or outside an area."
 	}
 }

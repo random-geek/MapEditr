@@ -1,146 +1,127 @@
 use super::Command;
 
-use crate::spatial::{Vec3, Area};
+use crate::unwrap_or;
+use crate::spatial::{Vec3, Area, InverseBlockIterator};
 use crate::instance::{ArgType, InstArgs, InstBundle};
 use crate::map_block::MapBlock;
-use crate::time_keeper::TimeKeeper;
 use crate::utils::{query_keys, to_bytes, fmt_big_num};
 
 
 fn do_replace(
 	block: &mut MapBlock,
 	key: i64,
-	search_id: u16,
+	old_id: u16,
 	new_node: &[u8],
 	area: Option<Area>,
-	invert: bool,
-	tk: &mut TimeKeeper
+	invert: bool
 ) -> u64
 {
 	let block_pos = Vec3::from_block_key(key);
-	let mut count = 0;
+	let mut replaced = 0;
 
-	// Replace nodes in a portion of a map block.
-	if area.is_some() && area.unwrap().contains_block(block_pos) !=
-		area.unwrap().touches_block(block_pos)
+	// Replace nodes in a portion of a mapblock.
+	if area
+		.filter(|a| a.contains_block(block_pos) != a.touches_block(block_pos))
+		.is_some()
 	{
-		let _t = tk.get_timer("replace (partial block)");
 		let node_area = area.unwrap().rel_block_overlap(block_pos).unwrap();
 
-		let mut new_replace_id = false;
-		let replace_id = block.nimap.get_id(new_node)
-			.unwrap_or_else(|| {
-				new_replace_id = true;
-				block.nimap.get_max_id().unwrap() + 1
-			});
-
-		let mut idx = 0;
-		let mut old_node_present = false;
-		let mut new_node_present = false;
-
+		let (new_id, new_id_needed) = match block.nimap.get_id(new_node) {
+			Some(id) => (id, false),
+			None => (block.nimap.get_max_id().unwrap() + 1, true)
+		};
 		let nd = block.node_data.get_mut();
-		for z in 0..16 {
-			for y in 0..16 {
-				for x in 0..16 {
-					if nd.nodes[idx] == search_id
-						&& node_area.contains(Vec3 {x, y, z}) != invert
-					{
-						nd.nodes[idx] = replace_id;
-						new_node_present = true;
-						count += 1;
-					}
 
-					if nd.nodes[idx] == search_id {
-						old_node_present = true;
-					}
-					idx += 1;
+		if invert {
+			for idx in InverseBlockIterator::new(node_area) {
+				if nd.nodes[idx] == old_id {
+					nd.nodes[idx] = new_id;
+					replaced += 1;
+				}
+			}
+		} else {
+			for pos in &node_area {
+				let idx = (pos.x + 16 * (pos.y + 16 * pos.z)) as usize;
+				if nd.nodes[idx] == old_id {
+					nd.nodes[idx] = new_id;
+					replaced += 1;
 				}
 			}
 		}
 
-		// Replacement node not yet in name-ID map; insert it.
-		if new_replace_id && new_node_present {
-			block.nimap.0.insert(replace_id, new_node.to_vec());
+		// If replacement ID is not in the name-ID map but was used, add it.
+		if new_id_needed && replaced > 0 {
+			block.nimap.0.insert(new_id, new_node.to_vec());
 		}
 
-		// Search node was completely eliminated; shift IDs down.
-		if !old_node_present {
-			for i in 0 .. nd.nodes.len() {
-				if nd.nodes[i] > search_id {
-					nd.nodes[i] -= 1;
-				}
+		// If all instances of the old ID were replaced, remove the old ID.
+		if !nd.nodes.contains(&old_id) {
+			for node in &mut nd.nodes {
+				*node -= (*node > old_id) as u16;
 			}
-			block.nimap.remove_shift(search_id);
+			block.nimap.remove_shift(old_id);
 		}
 	}
-	// Replace nodes in whole map block.
+	// Replace nodes in whole mapblock.
 	else {
 		// Block already contains replacement node, beware!
-		if let Some(mut replace_id) = block.nimap.get_id(new_node) {
-			let _t = tk.get_timer("replace (non-unique replacement)");
+		if let Some(mut new_id) = block.nimap.get_id(new_node) {
 			// Delete unused ID from name-ID map and shift IDs down.
-			block.nimap.remove_shift(search_id);
+			block.nimap.remove_shift(old_id);
 			// Shift replacement ID, if necessary.
-			replace_id -= (replace_id > search_id) as u16;
+			new_id -= (new_id > old_id) as u16;
 
 			// Map old node IDs to new node IDs.
 			let nd = block.node_data.get_mut();
 			for id in &mut nd.nodes {
-				*id = if *id == search_id {
-					count += 1;
-					replace_id
+				*id = if *id == old_id {
+					replaced += 1;
+					new_id
 				} else {
-					*id - (*id > search_id) as u16
+					*id - (*id > old_id) as u16
 				};
 			}
 		}
 		// Block does not contain replacement node.
 		// Simply replace the node name in the name-ID map.
 		else {
-			let _t = tk.get_timer("replace (unique replacement)");
 			let nd = block.node_data.get_ref();
 			for id in &nd.nodes {
-				count += (*id == search_id) as u64;
+				replaced += (*id == old_id) as u64;
 			}
-			block.nimap.0.insert(search_id, new_node.to_vec());
+			block.nimap.0.insert(old_id, new_node.to_vec());
 		}
 	}
-	count
+	replaced
 }
 
 
 fn replace_nodes(inst: &mut InstBundle) {
-	let node = to_bytes(inst.args.node.as_ref().unwrap());
+	let old_node = to_bytes(inst.args.node.as_ref().unwrap());
 	let new_node = to_bytes(inst.args.new_node.as_ref().unwrap());
 	let keys = query_keys(&mut inst.db, &inst.status,
-		std::slice::from_ref(&node), inst.args.area, inst.args.invert, true);
+		std::slice::from_ref(&old_node),
+		inst.args.area, inst.args.invert, true);
 
 	inst.status.begin_editing();
 	let mut count = 0;
 
-	let mut tk = TimeKeeper::new();
 	for key in keys {
 		let data = inst.db.get_block(key).unwrap();
 
-		let mut block = {
-			let _t = tk.get_timer("decode");
-			MapBlock::deserialize(&data).unwrap()
-		};
+		let mut block = unwrap_or!(MapBlock::deserialize(&data),
+			{ inst.status.inc_failed(); continue; });
 
-		if let Some(search_id) = block.nimap.get_id(&node) {
-			count += do_replace(&mut block, key, search_id, &new_node,
-				inst.args.area, inst.args.invert, &mut tk);
-			let new_data = {
-				let _t = tk.get_timer("encode");
-				block.serialize()
-			};
+		if let Some(old_id) = block.nimap.get_id(&old_node) {
+			count += do_replace(&mut block, key, old_id, &new_node,
+				inst.args.area, inst.args.invert);
+			let new_data = block.serialize();
 			inst.db.set_block(key, &new_data).unwrap();
 		}
 
 		inst.status.inc_done();
 	}
 
-	// tk.print();
 	inst.status.end_editing();
 	inst.status.log_info(format!("{} nodes replaced.", fmt_big_num(count)));
 }

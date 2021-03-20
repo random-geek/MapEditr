@@ -11,7 +11,7 @@ fn delete_metadata(inst: &mut InstBundle) {
 	let node = inst.args.node.as_ref().map(to_bytes);
 
 	let keys = query_keys(&mut inst.db, &mut inst.status,
-		&to_slice(&node), inst.args.area, inst.args.invert, true);
+		to_slice(&node), inst.args.area, inst.args.invert, true);
 
 	inst.status.begin_editing();
 	let mut count: u64 = 0;
@@ -19,7 +19,8 @@ fn delete_metadata(inst: &mut InstBundle) {
 	for key in keys {
 		inst.status.inc_done();
 		let data = inst.db.get_block(key).unwrap();
-		let mut block = unwrap_or!(MapBlock::deserialize(&data), continue);
+		let mut block = unwrap_or!(MapBlock::deserialize(&data),
+			{ inst.status.inc_failed(); continue; });
 
 		let node_data = block.node_data.get_ref();
 		let node_id = node.as_deref().and_then(|n| block.nimap.get_id(n));
@@ -28,14 +29,14 @@ fn delete_metadata(inst: &mut InstBundle) {
 		}
 
 		let mut meta = unwrap_or!(
-			NodeMetadataList::deserialize(block.metadata.get_ref()), continue);
+			NodeMetadataList::deserialize(block.metadata.get_ref()),
+			{ inst.status.inc_failed(); continue; });
 
 		let block_corner = Vec3::from_block_key(key) * 16;
 		let mut to_delete = Vec::with_capacity(meta.len());
 
 		for (&idx, _) in &meta {
-			let pos = Vec3::from_u16_key(idx);
-			let abs_pos = pos + block_corner;
+			let abs_pos = Vec3::from_u16_key(idx) + block_corner;
 
 			if let Some(a) = inst.args.area {
 				if a.contains(abs_pos) == inst.args.invert {
@@ -52,10 +53,10 @@ fn delete_metadata(inst: &mut InstBundle) {
 		}
 
 		if !to_delete.is_empty() {
-			count += to_delete.len() as u64;
 			for idx in &to_delete {
 				meta.remove(idx);
 			}
+			count += to_delete.len() as u64;
 			*block.metadata.get_mut() = meta.serialize(block.version);
 			inst.db.set_block(key, &block.serialize()).unwrap();
 		}

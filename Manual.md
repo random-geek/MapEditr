@@ -15,8 +15,8 @@ already be generated. This can be done by either exploring the area in-game,
 or by using Minetest's built-in `/emergeblocks` command.
 
 MapEditr supports all maps created since Minetest version 0.4.2-rc1, released
-July 2012. Any unsupported areas of the map will be skipped (TODO). Note that
-only SQLite format maps are currently supported.
+July 2012. Any unsupported areas of the map will be skipped. Note that only
+SQLite format maps are currently supported.
 
 ## General usage
 
@@ -53,7 +53,7 @@ WorldEdit `//fixlight` command.
 
 Usage: `clone --p1 x y z --p2 x y z --offset x y z`
 
-Clone (copy) a given area to a new location.
+Clone (copy) the contents of an area to a new location.
 
 Arguments:
 
@@ -69,14 +69,14 @@ from or into mapblocks that are not yet generated.
 
 Usage: `deleteblocks --p1 x y z --p2 x y z [--invert]`
 
-Deletes all mapblocks in the given area.
+Delete all mapblocks inside or outside an area.
 
 Arguments:
 
-- `--p1, --p2`: Area to delete from. Only mapblocks fully inside this area
-will be deleted.
-- `--invert`: Delete only mapblocks that are fully *outside* the given
-area.
+- `--p1, --p2`: Area containing mapblocks to delete. By default, only mapblocks
+fully within this area will be deleted.
+- `--invert`: Delete all mapblocks fully *outside* the given area. Use with
+caution; you could erase a large portion of your world!
 
 **Note:** Deleting mapblocks is *not* the same as filling them with air! Mapgen
 will be invoked where the blocks were deleted, and this sometimes causes
@@ -86,13 +86,13 @@ terrain glitches.
 
 Usage: `deletemeta [--node <node>] [--p1 x y z] [--p2 x y z] [--invert]`
 
-Delete metadata of a certain node and/or within a certain area. This includes
-node inventories as well.
+Delete node metadata of certain nodes. Node inventories (such as chest/furnace
+contents) are also deleted.
 
 Arguments:
 
-- `--node`: Name of node to modify. If not specified, the metadata of all
-nodes will be deleted.
+- `--node`: Only delete metadata of nodes with the given name. If not
+specified, metadata will be deleted in all matching nodes.
 - `--p1, --p2`: Area in which to delete metadata. If not specified, metadata
 will be deleted everywhere.
 - `--invert`: Only delete metadata *outside* the given area.

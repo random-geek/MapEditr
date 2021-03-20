@@ -1,4 +1,4 @@
-// TODO: Move this file somewhere else.
+// TODO: Move this file somewhere else?
 use std::collections::BTreeMap;
 
 use crate::map_block::{MapBlock, NodeMetadataList};
@@ -115,7 +115,7 @@ pub fn clean_name_id_map(block: &mut MapBlock) {
 	}
 
 	// Rebuild the name-ID map.
-	let mut new_nimap = BTreeMap::<u16, Vec<u8>>::new();
+	let mut new_nimap = BTreeMap::new();
 	let mut map = vec![0u16; id_count];
 	for id in 0..id_count {
 		// Skip unused IDs.

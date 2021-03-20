@@ -26,9 +26,9 @@ fn arg_to_pos(p: clap::Values) -> anyhow::Result<Vec3> {
 fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 	-> Vec<Arg<'a, 'a>>
 {
-	let arg = tup.0.clone();
-	let help = tup.1;
-	if let ArgType::Area(req) = arg {
+	let arg_type = tup.0.clone();
+	let help_msg = tup.1;
+	if let ArgType::Area(req) = arg_type {
 		return vec![
 			Arg::with_name("p1")
 				.long("p1")
@@ -37,7 +37,7 @@ fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 				.value_names(&["x", "y", "z"])
 				.required(req)
 				.requires("p2")
-				.help(help),
+				.help(help_msg),
 			Arg::with_name("p2")
 				.long("p2")
 				.allow_hyphen_values(true)
@@ -45,91 +45,78 @@ fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 				.value_names(&["x", "y", "z"])
 				.required(req)
 				.requires("p1")
-				.help(help)
+				.help(help_msg)
 		];
 	}
-	// TODO: Help is redundant.
-	vec![match arg {
+	// TODO: Ensure arguments are correctly defined.
+	let arg = match arg_type {
+		ArgType::Area(_) => unreachable!(),
 		ArgType::InputMapPath =>
 			Arg::with_name("input_map")
-				.required(true)
-				.help(help),
-		ArgType::Area(_) => unreachable!(),
+				.required(true),
 		ArgType::Invert =>
 			Arg::with_name("invert")
-				.long("invert")
-				.help(help),
+				.long("invert"),
 		ArgType::Offset(req) =>
 			Arg::with_name("offset")
 				.long("offset")
 				.allow_hyphen_values(true)
 				.number_of_values(3)
 				.value_names(&["x", "y", "z"])
-				.required(req)
-				.help(help),
+				.required(req),
 		ArgType::Node(req) => {
 			let a = Arg::with_name("node")
-				.required(req)
-				.help(help);
-			if !req {
-				a.long("node").takes_value(true)
-			} else {
+				.required(req);
+			if req {
 				a
+			} else {
+				a.long("node").takes_value(true)
 			}
 		},
 		ArgType::Nodes =>
 			Arg::with_name("nodes")
 				.long("nodes")
-				.min_values(1)
-				.help(help),
+				.min_values(1),
 		ArgType::NewNode =>
 			Arg::with_name("new_node")
 				.takes_value(true)
-				.required(true)
-				.help(help),
+				.required(true),
 		ArgType::Object =>
 			Arg::with_name("object")
 				.long("obj")
-				.takes_value(true)
-				.help(help),
+				.takes_value(true),
 		ArgType::Item =>
 			Arg::with_name("item")
 				.takes_value(true)
-				.required(true)
-				.help(help),
+				.required(true),
 		ArgType::Items =>
 			Arg::with_name("items")
 				.long("items")
 				.min_values(0)
-				.max_values(1)
-				.help(help),
+				.max_values(1),
 		ArgType::NewItem =>
 			Arg::with_name("new_item")
-				.takes_value(true)
-				.help(help),
+				.takes_value(true),
 		ArgType::DeleteMeta =>
 			Arg::with_name("delete_meta")
-				.long("deletemeta")
-				.help(help),
+				.long("deletemeta"),
 		ArgType::DeleteItem =>
 			Arg::with_name("delete_item")
-				.long("delete")
-				.help(help),
+				.long("delete"),
 		ArgType::Key =>
 			Arg::with_name("key")
 				.takes_value(true)
-				.required(true)
-				.help(help),
+				.required(true),
 		ArgType::Value =>
 			Arg::with_name("value")
 				.takes_value(true)
-				.required(true)
-				.help(help),
+				.required(true),
 		ArgType::Param2Val =>
 			Arg::with_name("param2_val")
-				.required(true)
-				.help(help),
-	}]
+				.required(true),
+	}.help(help_msg);
+
+	vec![arg]
 }
 
 
@@ -147,7 +134,9 @@ fn parse_cmd_line_args() -> anyhow::Result<InstArgs> {
 
 	let app = App::new("MapEditr")
 		.about("Edits Minetest worlds/map databases.")
-		.after_help("For command-specific help, run: mapeditr <command> -h")
+		.after_help(
+			"For command-specific help, run: mapeditr <SUBCOMMAND> -h\n\
+			For additional information, see the manual.")
 		.version(crate_version!())
 		.author(crate_authors!())
 		// TODO: Move map arg to subcommands?
@@ -322,7 +311,7 @@ pub fn run_cmd_line() {
 		if forced_update == InstState::Querying
 			|| (cur_state == InstState::Querying && timed_update_ready)
 		{
-			eprint!("\rQuerying map blocks... {} found.",
+			eprint!("\rQuerying mapblocks... {} found.",
 				status.get().blocks_total);
 			std::io::stdout().flush().unwrap();
 			last_update = now;

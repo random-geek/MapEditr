@@ -4,7 +4,7 @@ use std::sync::mpsc;
 
 use anyhow::Context;
 
-use crate::spatial::{Vec3, Area};
+use crate::spatial::{Vec3, Area, MAP_LIMIT};
 use crate::map_database::MapDatabase;
 use crate::commands;
 
@@ -193,6 +193,27 @@ fn status_channel() -> (StatusServer, StatusClient) {
 
 
 fn verify_args(args: &InstArgs) -> anyhow::Result<()> {
+	// TODO: Complete verifications.
+
+	if args.area.is_none() && args.invert {
+		anyhow::bail!("Cannot invert without a specified area.");
+	}
+	if let Some(a) = args.area {
+		for pos in &[a.min, a.max] {
+			anyhow::ensure!(pos.is_valid_node_pos(),
+				"Area corner is outside map bounds: {}.", pos);
+		}
+	}
+	if let Some(offset) = args.offset {
+		let huge = |n| n < -MAP_LIMIT * 2 || n > MAP_LIMIT * 2;
+
+		if huge(offset.x) || huge(offset.y) || huge(offset.z) {
+			anyhow::bail!(
+				"Offset cannot be larger than {} nodes in any direction.",
+				MAP_LIMIT * 2);
+		}
+	}
+
 	fn is_valid_name(name: &str) -> bool {
 		if name == "air" || name == "ignore" {
 			true
@@ -205,29 +226,12 @@ fn verify_args(args: &InstArgs) -> anyhow::Result<()> {
 			let mod_name = &name[..delim];
 			let item_name = &name[delim + 1..];
 
-			if mod_name.find(|c: char|
+			mod_name.find(|c: char|
 				!(c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_'))
-				.is_some()
-			|| item_name.find(|c: char|
+				.is_none()
+			&& item_name.find(|c: char|
 				!(c.is_ascii_alphanumeric() || c == '_'))
-				.is_some()
-			{
-				false
-			} else {
-				true
-			}
-		}
-	}
-
-	// TODO: Complete verifications.
-
-	if args.area.is_none() && args.invert {
-		anyhow::bail!("Cannot invert without a specified area.");
-	}
-	if let Some(a) = args.area {
-		for pos in &[a.min, a.max] {
-			anyhow::ensure!(pos.is_valid_node_pos(),
-				"Area corner is outside map bounds: {}.", pos);
+				.is_none()
 		}
 	}
 
@@ -246,6 +250,13 @@ fn verify_args(args: &InstArgs) -> anyhow::Result<()> {
 	verify_name!(args.new_node, "Invalid node name: {}");
 	verify_name!(args.object, "Invalid object name: {}");
 	verify_name!(args.item, "Invalid item name: {}");
+	if let Some(items) = &args.items {
+		for i in items {
+			anyhow::ensure!(is_valid_name(i), "Invalid item name: {}", i);
+		}
+	}
+	verify_name!(args.new_item, "Invalid item name: {}");
+	// TODO: Are keys/values escaped?
 
 	Ok(())
 }

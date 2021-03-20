@@ -1,3 +1,6 @@
+pub const MAP_LIMIT: i32 = 31000;
+
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vec3 {
 	pub x: i32,
@@ -39,7 +42,7 @@ impl Vec3 {
 	}
 
 	pub fn is_valid_block_pos(&self) -> bool {
-		const LIMIT: i32 = 31000 / 16;
+		const LIMIT: i32 = MAP_LIMIT / 16;
 
 		-LIMIT <= self.x && self.x <= LIMIT
 			&& -LIMIT <= self.y && self.y <= LIMIT
@@ -47,7 +50,7 @@ impl Vec3 {
 	}
 
 	pub fn is_valid_node_pos(&self) -> bool {
-		const LIMIT: i32 = 31000;
+		const LIMIT: i32 = MAP_LIMIT;
 
 		-LIMIT <= self.x && self.x <= LIMIT
 			&& -LIMIT <= self.y && self.y <= LIMIT

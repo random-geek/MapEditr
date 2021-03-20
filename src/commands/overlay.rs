@@ -1,7 +1,7 @@
 use super::{Command, BLOCK_CACHE_SIZE};
 
 use crate::{unwrap_or, opt_unwrap_or};
-use crate::spatial::{Vec3, Area};
+use crate::spatial::{Vec3, Area, MAP_LIMIT};
 use crate::instance::{ArgType, InstArgs, InstBundle};
 use crate::map_database::MapDatabase;
 use crate::map_block::{MapBlock, MapBlockError, is_valid_generated,
@@ -11,11 +11,24 @@ use crate::utils::{query_keys, CacheMap};
 
 
 fn verify_args(args: &InstArgs) -> anyhow::Result<()> {
-	let offset_if_nonzero =
-		args.offset.filter(|&off| off != Vec3::new(0, 0, 0));
-	if args.invert && offset_if_nonzero.is_some() {
+	if args.invert
+		&& args.offset.filter(|&ofs| ofs != Vec3::new(0, 0, 0)).is_some()
+	{
 		anyhow::bail!("Inverted selections cannot be offset.");
 	}
+
+	let offset = args.offset.unwrap_or(Vec3::new(0, 0, 0));
+	let map_area = Area::new(
+		Vec3::new(-MAP_LIMIT, -MAP_LIMIT, -MAP_LIMIT),
+		Vec3::new(MAP_LIMIT, MAP_LIMIT, MAP_LIMIT)
+	);
+
+	if map_area.intersection(args.area.unwrap_or(map_area) + offset)
+		.is_none()
+	{
+		anyhow::bail!("Destination area is outside map bounds.");
+	}
+
 	Ok(())
 }
 
@@ -45,12 +58,12 @@ fn overlay_no_offset(inst: &mut InstBundle) {
 
 			if (!invert && area.contains_block(pos))
 				|| (invert && !area.touches_block(pos))
-			{ // If possible, copy whole map block.
+			{ // If possible, copy whole mapblock.
 				let data = idb.get_block(key).unwrap();
 				if is_valid_generated(&data) {
 					db.set_block(key, &data).unwrap();
 				}
-			} else { // Copy part of map block
+			} else { // Copy part of mapblock
 				let res = || -> Result<(), MapBlockError> {
 					let dst_data = opt_unwrap_or!(
 						db.get_block(key).ok()
@@ -91,7 +104,7 @@ fn overlay_no_offset(inst: &mut InstBundle) {
 				}
 			}
 		} else {
-			// No area; copy whole map block.
+			// No area; copy whole mapblock.
 			let data = idb.get_block(key).unwrap();
 			if is_valid_generated(&data) {
 				db.set_block(key, &data).unwrap();

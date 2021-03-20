@@ -80,6 +80,22 @@ impl Area {
 		(self.max.z - self.min.z + 1) as u64
 	}
 
+	pub fn intersection(&self, rhs: Self) -> Option<Self> {
+		let res = Self {
+			min: Vec3 {
+				x: max(self.min.x, rhs.min.x),
+				y: max(self.min.y, rhs.min.y),
+				z: max(self.min.z, rhs.min.z)
+			},
+			max: Vec3 {
+				x: min(self.max.x, rhs.max.x),
+				y: min(self.max.y, rhs.max.y),
+				z: min(self.max.z, rhs.max.z)
+			}
+		};
+		Some(res).filter(Self::is_valid)
+	}
+
 	pub fn contains(&self, pos: Vec3) -> bool {
 		self.min.x <= pos.x && pos.x <= self.max.x
 			&& self.min.y <= pos.y && pos.y <= self.max.y
@@ -251,6 +267,36 @@ mod tests {
 		iter_area(Area::new(Vec3::new(-1, -1, -1), Vec3::new(-1, -1, -1)));
 		iter_area(Area::new(Vec3::new(10, -99, 11), Vec3::new(10, -99, 12)));
 		iter_area(Area::new(Vec3::new(0, -1, -2), Vec3::new(5, 7, 11)));
+	}
+
+	#[test]
+	fn test_area_intersection() {
+		let triples = [
+			(
+				Area::new(Vec3::new(0, 0, 0), Vec3::new(0, 0, 0)),
+				Area::new(Vec3::new(1, 1, 0), Vec3::new(1, 1, 0)),
+				None
+			),
+			(
+				Area::new(Vec3::new(-10, -8, -10), Vec3::new(10, 8, 10)),
+				Area::new(Vec3::new(-12, 0, -2), Vec3::new(-8, 13, 2)),
+				Some(Area::new(Vec3::new(-10, 0, -2), Vec3::new(-8, 8, 2)))
+			),
+			(
+				Area::new(Vec3::new(0, 0, 0), Vec3::new(2, 2, 2)),
+				Area::new(Vec3::new(0, -1, 3), Vec3::new(2, 1, 5)),
+				None
+			),
+			(
+				Area::new(Vec3::new(0, -10, -10), Vec3::new(30, 30, 30)),
+				Area::new(Vec3::new(16, 16, -10), Vec3::new(29, 29, 20)),
+				Some(Area::new(Vec3::new(16, 16, -10), Vec3::new(29, 29, 20)))
+			),
+		];
+		for t in &triples {
+			assert_eq!(t.0.intersection(t.1), t.2);
+			assert_eq!(t.1.intersection(t.0), t.2);
+		}
 	}
 
 	#[test]

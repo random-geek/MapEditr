@@ -65,7 +65,7 @@ fn delete_objects(inst: &mut InstBundle) {
 		.map(|s| TwoWaySearcher::new(s));
 
 	let keys = query_keys(&mut inst.db, &mut inst.status,
-		&to_slice(&search_obj), inst.args.area, inst.args.invert, true);
+		to_slice(&search_obj), inst.args.area, inst.args.invert, true);
 
 	inst.status.begin_editing();
 	let mut count: u64 = 0;

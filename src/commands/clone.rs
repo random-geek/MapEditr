@@ -1,14 +1,29 @@
 use super::{Command, BLOCK_CACHE_SIZE};
 
 use crate::{unwrap_or, opt_unwrap_or};
-use crate::spatial::Vec3;
+use crate::spatial::{Vec3, Area, MAP_LIMIT};
 use crate::map_database::MapDatabase;
 use crate::map_block::{MapBlock, MapBlockError, is_valid_generated,
 	NodeMetadataList, NodeMetadataListExt};
 use crate::block_utils::{merge_blocks, merge_metadata, clean_name_id_map};
-use crate::instance::{ArgType, InstBundle};
+use crate::instance::{ArgType, InstBundle, InstArgs};
 use crate::utils::{CacheMap, query_keys};
-use crate::time_keeper::TimeKeeper;
+
+
+fn verify_args(args: &InstArgs) -> anyhow::Result<()> {
+	let map_area = Area::new(
+		Vec3::new(-MAP_LIMIT, -MAP_LIMIT, -MAP_LIMIT),
+		Vec3::new(MAP_LIMIT, MAP_LIMIT, MAP_LIMIT)
+	);
+
+	if map_area.intersection(args.area.unwrap() + args.offset.unwrap())
+		.is_none()
+	{
+		anyhow::bail!("Destination area is outside map bounds.");
+	}
+
+	Ok(())
+}
 
 
 type BlockResult = Option<Result<MapBlock, MapBlockError>>;
@@ -49,9 +64,8 @@ fn clone(inst: &mut InstBundle) {
 	});
 
 	let mut block_cache = CacheMap::with_capacity(BLOCK_CACHE_SIZE);
-	let mut tk = TimeKeeper::new();
-
 	inst.status.begin_editing();
+
 	for dst_key in dst_keys {
 		inst.status.inc_done();
 
@@ -93,40 +107,29 @@ fn clone(inst: &mut InstBundle) {
 			let dst_frag_rel = (src_frag_abs + offset)
 				.rel_block_overlap(dst_pos).unwrap();
 
-			{
-				let _t = tk.get_timer("merge");
-				merge_blocks(&src_block, &mut dst_block,
-					src_frag_rel, dst_frag_rel);
-			}
-			{
-				let _t = tk.get_timer("merge_meta");
-				merge_metadata(&src_meta, &mut dst_meta,
-					src_frag_rel, dst_frag_rel);
-			}
+			merge_blocks(&src_block, &mut dst_block,
+				src_frag_rel, dst_frag_rel);
+			merge_metadata(&src_meta, &mut dst_meta,
+				src_frag_rel, dst_frag_rel);
 		}
 
-		{
-			let _t = tk.get_timer("name-ID map cleanup");
-			clean_name_id_map(&mut dst_block);
-		}
-
+		clean_name_id_map(&mut dst_block);
 		*dst_block.metadata.get_mut() = dst_meta.serialize(dst_block.version);
 		inst.db.set_block(dst_key, &dst_block.serialize()).unwrap();
 	}
 
 	inst.status.end_editing();
-	tk.print(&inst.status);
 }
 
 
 pub fn get_command() -> Command {
 	Command {
 		func: clone,
-		verify_args: None,
+		verify_args: Some(verify_args),
 		args: vec![
 			(ArgType::Area(true), "Area to clone"),
 			(ArgType::Offset(true), "Vector to shift the area by")
 		],
-		help: "Clone (copy) a given area to a new location."
+		help: "Clone (copy) the contents of an area to a new location."
 	}
 }
