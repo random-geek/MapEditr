@@ -61,8 +61,7 @@ fn delete_objects(inst: &mut InstBundle) {
 	// is specified.
 	let search_item = inst.args.items.as_ref().and_then(|items| items.get(0))
 		.map(to_bytes);
-	let item_searcher = search_item.as_ref()
-		.map(|s| TwoWaySearcher::new(s));
+	let item_searcher = search_item.as_ref().map(|s| TwoWaySearcher::new(s));
 
 	let keys = query_keys(&mut inst.db, &mut inst.status,
 		to_slice(&search_obj), inst.args.area, inst.args.invert, true);
@@ -71,8 +70,9 @@ fn delete_objects(inst: &mut InstBundle) {
 	let mut count: u64 = 0;
 	for key in keys {
 		inst.status.inc_done();
-		let data = unwrap_or!(inst.db.get_block(key), continue);
-		let mut block = unwrap_or!(MapBlock::deserialize(&data), continue);
+		let data = inst.db.get_block(key).unwrap();
+		let mut block = unwrap_or!(MapBlock::deserialize(&data),
+			{ inst.status.inc_failed(); continue; });
 
 		let mut modified = false;
 		for i in (0..block.static_objects.len()).rev() {

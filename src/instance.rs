@@ -7,6 +7,7 @@ use anyhow::Context;
 use crate::spatial::{Vec3, Area, MAP_LIMIT};
 use crate::map_database::MapDatabase;
 use crate::commands;
+use crate::commands::ArgResult;
 
 
 #[derive(Clone)]
@@ -32,6 +33,7 @@ pub enum ArgType {
 
 #[derive(Debug)]
 pub struct InstArgs {
+	pub do_confirmation: bool,
 	pub command: String,
 	pub map_path: String,
 	pub input_map_path: Option<String>,
@@ -86,6 +88,7 @@ impl InstStatus {
 
 pub enum LogType {
 	Info,
+	Warning,
 	Error
 }
 
@@ -93,22 +96,29 @@ impl std::fmt::Display for LogType {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
 			Self::Info => write!(f, "info"),
+			Self::Warning => write!(f, "warning"),
 			Self::Error => write!(f, "error")
 		}
 	}
 }
 
 
-pub enum InstEvent {
+pub enum ServerEvent {
+	Log(LogType, String),
 	NewState(InstState),
-	Log(LogType, String)
+	ConfirmRequest,
 }
 
 
-#[derive(Clone)]
+pub enum ClientEvent {
+	ConfirmResponse(bool),
+}
+
+
 pub struct StatusServer {
 	status: Arc<Mutex<InstStatus>>,
-	event_tx: mpsc::Sender<InstEvent>
+	event_tx: mpsc::Sender<ServerEvent>,
+	event_rx: mpsc::Receiver<ClientEvent>,
 }
 
 impl StatusServer {
@@ -118,7 +128,7 @@ impl StatusServer {
 
 	pub fn set_state(&self, new_state: InstState) {
 		self.status.lock().unwrap().state = new_state;
-		self.event_tx.send(InstEvent::NewState(new_state)).unwrap();
+		self.event_tx.send(ServerEvent::NewState(new_state)).unwrap();
 	}
 
 	pub fn set_total(&self, total: usize) {
@@ -146,13 +156,27 @@ impl StatusServer {
 		self.set_state(InstState::Ignore);
 	}
 
-	pub fn log<S: AsRef<str>>(&self, lt: LogType, msg: S) {
-		self.event_tx.send(InstEvent::Log(lt, msg.as_ref().to_string()))
+	pub fn get_confirmation(&self) -> bool {
+		self.event_tx.send(ServerEvent::ConfirmRequest).unwrap();
+		while let Ok(event) = self.event_rx.recv() {
+			match event {
+				ClientEvent::ConfirmResponse(res) => return res
+			}
+		}
+		false
+	}
+
+	fn log<S: AsRef<str>>(&self, lt: LogType, msg: S) {
+		self.event_tx.send(ServerEvent::Log(lt, msg.as_ref().to_string()))
 			.unwrap();
 	}
 
 	pub fn log_info<S: AsRef<str>>(&self, msg: S) {
 		self.log(LogType::Info, msg);
+	}
+
+	pub fn log_warning<S: AsRef<str>>(&self, msg: S) {
+		self.log(LogType::Warning, msg);
 	}
 
 	pub fn log_error<S: AsRef<str>>(&self, msg: S) {
@@ -162,14 +186,44 @@ impl StatusServer {
 
 
 pub struct StatusClient {
-	pub event_rx: mpsc::Receiver<InstEvent>,
-	status: Arc<Mutex<InstStatus>>
+	status: Arc<Mutex<InstStatus>>,
+	event_tx: mpsc::Sender<ClientEvent>,
+	event_rx: mpsc::Receiver<ServerEvent>,
 }
 
 impl StatusClient {
-	pub fn get(&self) -> InstStatus {
+	pub fn get_status(&self) -> InstStatus {
 		self.status.lock().unwrap().clone()
 	}
+
+	#[inline]
+	pub fn receiver(&self) -> &mpsc::Receiver<ServerEvent> {
+		&self.event_rx
+	}
+
+	pub fn confirm(&self, choice: bool) {
+		self.event_tx.send(ClientEvent::ConfirmResponse(choice)).unwrap();
+	}
+}
+
+
+fn status_link() -> (StatusServer, StatusClient) {
+	let status1 = Arc::new(Mutex::new(InstStatus::new()));
+	let status2 = status1.clone();
+	let (s_event_tx, s_event_rx) = mpsc::channel();
+	let (c_event_tx, c_event_rx) = mpsc::channel();
+	(
+		StatusServer {
+			status: status1,
+			event_tx: s_event_tx,
+			event_rx: c_event_rx,
+		},
+		StatusClient {
+			status: status2,
+			event_tx: c_event_tx,
+			event_rx: s_event_rx,
+		}
+	)
 }
 
 
@@ -178,17 +232,6 @@ pub struct InstBundle<'a> {
 	pub status: StatusServer,
 	pub db: MapDatabase<'a>,
 	pub idb: Option<MapDatabase<'a>>
-}
-
-
-fn status_channel() -> (StatusServer, StatusClient) {
-	let status1 = Arc::new(Mutex::new(InstStatus::new()));
-	let status2 = status1.clone();
-	let (event_tx, event_rx) = mpsc::channel();
-	(
-		StatusServer {status: status1, event_tx},
-		StatusClient {status: status2, event_rx}
-	)
 }
 
 
@@ -280,14 +323,17 @@ fn open_map(path: PathBuf, flags: sqlite::OpenFlags)
 }
 
 
-fn compute_thread(args: InstArgs, status: StatusServer)
-	-> anyhow::Result<()>
-{
+fn compute_thread(args: InstArgs, status: StatusServer) -> anyhow::Result<()> {
 	verify_args(&args)?;
 
 	let commands = commands::get_commands();
+	let mut cmd_warning = None;
 	if let Some(cmd_verify) = commands[args.command.as_str()].verify_args {
-		cmd_verify(&args)?
+		cmd_warning = match cmd_verify(&args) {
+			ArgResult::Ok => None,
+			ArgResult::Warning(w) => Some(w),
+			ArgResult::Error(e) => anyhow::bail!(e)
+		}
 	}
 
 	let db_conn = open_map(PathBuf::from(&args.map_path),
@@ -303,14 +349,27 @@ fn compute_thread(args: InstArgs, status: StatusServer)
 		Some(conn) => Some(MapDatabase::new(conn)?),
 		None => None
 	};
-	// TODO: Standard warning?
+
 	let func = commands[args.command.as_str()].func;
 	let mut inst = InstBundle {args, status, db, idb};
-	func(&mut inst);
+
+	// Issue warnings and confirmation prompt.
+	if inst.args.do_confirmation {
+		inst.status.log_warning(
+			"This tool can permanently damage your Minetest world.\n\
+			Always EXIT Minetest and BACK UP the map database before use.");
+	}
+	if let Some(w) = cmd_warning {
+		inst.status.log_warning(w);
+	}
+	if inst.args.do_confirmation && !inst.status.get_confirmation() {
+		return Ok(());
+	}
+
+	func(&mut inst); // The real thing!
 
 	let fails = inst.status.get_status().blocks_failed;
 	if fails > 0 {
-		// TODO: log_warning
 		inst.status.log_info(format!(
 			"Skipped {} invalid/unsupported mapblocks.", fails));
 	}
@@ -327,16 +386,18 @@ fn compute_thread(args: InstArgs, status: StatusServer)
 pub fn spawn_compute_thread(args: InstArgs)
 	-> (std::thread::JoinHandle<()>, StatusClient)
 {
-	let (status_tx, status_rx) = status_channel();
+	let (status_server, status_client) = status_link();
 	// Clone within this thread to avoid issue #39364 (hopefully).
-	let status_tx_2 = status_tx.clone();
+	let raw_event_tx = status_server.event_tx.clone();
 	let h = std::thread::Builder::new()
 		.name("compute".to_string())
 		.spawn(move || {
-			compute_thread(args, status_tx_2).unwrap_or_else(
-				|err| status_tx.log_error(&err.to_string())
+			compute_thread(args, status_server).unwrap_or_else(
+				// TODO: Find a cleaner way to do this.
+				|err| raw_event_tx.send(
+					ServerEvent::Log(LogType::Error, err.to_string())).unwrap()
 			);
 		})
 		.unwrap();
-	(h, status_rx)
+	(h, status_client)
 }

@@ -1,10 +1,20 @@
-use super::Command;
+use super::{Command, ArgResult};
 
 use crate::unwrap_or;
 use crate::spatial::Vec3;
-use crate::instance::{ArgType, InstBundle};
+use crate::instance::{ArgType, InstArgs, InstBundle};
 use crate::map_block::{MapBlock, NodeMetadataList, NodeMetadataListExt};
 use crate::utils::{query_keys, to_bytes, to_slice, fmt_big_num};
+
+
+fn verify_args(args: &InstArgs) -> ArgResult {
+	if !args.area.is_some() && !args.node.is_some() {
+		return ArgResult::warning(
+			"No area or node specified. ALL metadata will be deleted!");
+	}
+
+	ArgResult::Ok
+}
 
 
 fn delete_metadata(inst: &mut InstBundle) {
@@ -71,14 +81,13 @@ fn delete_metadata(inst: &mut InstBundle) {
 pub fn get_command() -> Command {
 	Command {
 		func: delete_metadata,
-		verify_args: None,
+		verify_args: Some(verify_args),
 		args: vec![
 			(ArgType::Area(false), "Area in which to delete metadata"),
-			(ArgType::Invert, "Delete all metadata outside the given area."),
-			(ArgType::Node(false),
-				"Node to delete metadata from. If not specified, all metadata \
-				will be deleted.")
+			(ArgType::Invert,
+				"If present, delete metadata *outside* the given area."),
+			(ArgType::Node(false), "Name of node to delete metadata from")
 		],
-		help: "Delete node metadata."
+		help: "Delete node metadata of certain nodes."
 	}
 }

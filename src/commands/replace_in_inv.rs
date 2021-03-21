@@ -1,4 +1,4 @@
-use super::Command;
+use super::{Command, ArgResult};
 
 use crate::unwrap_or;
 use crate::spatial::Vec3;
@@ -129,14 +129,15 @@ fn replace_in_inv(inst: &mut InstBundle) {
 }
 
 
-fn verify_args(args: &InstArgs) -> anyhow::Result<()> {
+fn verify_args(args: &InstArgs) -> ArgResult {
 	if args.new_item.is_none() && !args.delete_item && !args.delete_meta {
-		anyhow::bail!(
-			"new_item is required unless --delete or --deletemeta is used.")
+		return ArgResult::error(
+			"new_item is required unless --delete or --deletemeta is used.");
 	} else if args.new_item.is_some() && args.delete_item {
-		anyhow::bail!("Cannot delete items if new_item is specified.");
+		return ArgResult::error(
+			"Cannot delete items if new_item is specified.");
 	}
-	Ok(())
+	ArgResult::Ok
 }
 
 

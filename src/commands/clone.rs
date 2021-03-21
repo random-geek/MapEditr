@@ -1,4 +1,4 @@
-use super::{Command, BLOCK_CACHE_SIZE};
+use super::{Command, ArgResult, BLOCK_CACHE_SIZE};
 
 use crate::{unwrap_or, opt_unwrap_or};
 use crate::spatial::{Vec3, Area, MAP_LIMIT};
@@ -10,7 +10,7 @@ use crate::instance::{ArgType, InstBundle, InstArgs};
 use crate::utils::{CacheMap, query_keys};
 
 
-fn verify_args(args: &InstArgs) -> anyhow::Result<()> {
+fn verify_args(args: &InstArgs) -> ArgResult {
 	let map_area = Area::new(
 		Vec3::new(-MAP_LIMIT, -MAP_LIMIT, -MAP_LIMIT),
 		Vec3::new(MAP_LIMIT, MAP_LIMIT, MAP_LIMIT)
@@ -19,10 +19,10 @@ fn verify_args(args: &InstArgs) -> anyhow::Result<()> {
 	if map_area.intersection(args.area.unwrap() + args.offset.unwrap())
 		.is_none()
 	{
-		anyhow::bail!("Destination area is outside map bounds.");
+		return ArgResult::error("Destination area is outside map bounds.");
 	}
 
-	Ok(())
+	ArgResult::Ok
 }
 
 

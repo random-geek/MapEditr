@@ -1,4 +1,4 @@
-use super::{Command, BLOCK_CACHE_SIZE};
+use super::{Command, ArgResult, BLOCK_CACHE_SIZE};
 
 use crate::{unwrap_or, opt_unwrap_or};
 use crate::spatial::{Vec3, Area, MAP_LIMIT};
@@ -10,11 +10,11 @@ use crate::block_utils::{merge_blocks, merge_metadata, clean_name_id_map};
 use crate::utils::{query_keys, CacheMap};
 
 
-fn verify_args(args: &InstArgs) -> anyhow::Result<()> {
+fn verify_args(args: &InstArgs) -> ArgResult {
 	if args.invert
 		&& args.offset.filter(|&ofs| ofs != Vec3::new(0, 0, 0)).is_some()
 	{
-		anyhow::bail!("Inverted selections cannot be offset.");
+		return ArgResult::error("Inverted selections cannot be offset.");
 	}
 
 	let offset = args.offset.unwrap_or(Vec3::new(0, 0, 0));
@@ -26,10 +26,10 @@ fn verify_args(args: &InstArgs) -> anyhow::Result<()> {
 	if map_area.intersection(args.area.unwrap_or(map_area) + offset)
 		.is_none()
 	{
-		anyhow::bail!("Destination area is outside map bounds.");
+		return ArgResult::error("Destination area is outside map bounds.");
 	}
 
-	Ok(())
+	ArgResult::Ok
 }
 
 

@@ -19,9 +19,30 @@ mod vacuum;
 pub const BLOCK_CACHE_SIZE: usize = 1024;
 
 
+pub enum ArgResult {
+	Ok,
+	Warning(String),
+	Error(String),
+}
+
+impl ArgResult {
+	/// Create a new ArgResult::Warning from a &str.
+	#[inline]
+	pub fn warning(msg: &str) -> Self {
+		Self::Warning(msg.to_string())
+	}
+
+	/// Create a new ArgResult::Error from a &str.
+	#[inline]
+	pub fn error(msg: &str) -> Self {
+		Self::Error(msg.to_string())
+	}
+}
+
+
 pub struct Command {
 	pub func: fn(&mut InstBundle),
-	pub verify_args: Option<fn(&InstArgs) -> anyhow::Result<()>>,
+	pub verify_args: Option<fn(&InstArgs) -> ArgResult>,
 	pub help: &'static str,
 	pub args: Vec<(ArgType, &'static str)>
 }

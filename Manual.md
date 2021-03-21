@@ -20,11 +20,12 @@ SQLite format maps are currently supported.
 
 ## General usage
 
-`mapeditr [-h] <map> <subcommand>`
+`mapeditr [-h] [-y] <map> <subcommand>`
 
 Arguments:
 
-- `-h`: Show a help message and exit.
+- `-h, --help`: Print help information and exit.
+- `-y, --yes`: Skip the default confirmation prompt (for those who feel brave).
 - `<map>`: Path to the Minetest world/map to edit; this can be either a world
 directory or a `map.sqlite` file within a world folder. This file will be
 modified, so *always* shut down the game/server before executing any command.
@@ -75,8 +76,8 @@ Arguments:
 
 - `--p1, --p2`: Area containing mapblocks to delete. By default, only mapblocks
 fully within this area will be deleted.
-- `--invert`: Delete all mapblocks fully *outside* the given area. Use with
-caution; you could erase a large portion of your world!
+- `--invert`: If present, delete all mapblocks fully *outside* the given area.
+Use with caution; you could erase a large portion of your world!
 
 **Note:** Deleting mapblocks is *not* the same as filling them with air! Mapgen
 will be invoked where the blocks were deleted, and this sometimes causes
@@ -91,11 +92,11 @@ contents) are also deleted.
 
 Arguments:
 
-- `--node`: Only delete metadata of nodes with the given name. If not
-specified, metadata will be deleted in all matching nodes.
-- `--p1, --p2`: Area in which to delete metadata. If not specified, metadata
-will be deleted everywhere.
-- `--invert`: Only delete metadata *outside* the given area.
+- `--node`: (Optional) Name of node to delete metadata from. If not specified,
+metadata will be deleted from any node.
+- `--p1, --p2`: (Optional) Area in which to delete metadata. If not specified,
+metadata will be deleted everywhere.
+- `--invert`: If present, delete metadata *outside* the given area.
 
 ### deleteobjects
 

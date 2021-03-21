@@ -25,7 +25,8 @@ pub fn get_command() -> Command {
 		args: vec![
 			(ArgType::Area(true), "Area containing mapblocks to delete"),
 			(ArgType::Invert,
-				"Delete all mapblocks fully *outside* the given area.")
+				"If present, delete all mapblocks fully *outside* the given \
+				area.")
 		],
 		help: "Delete all mapblocks inside or outside an area."
 	}

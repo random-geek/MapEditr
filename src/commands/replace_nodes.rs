@@ -1,4 +1,4 @@
-use super::Command;
+use super::{Command, ArgResult};
 
 use crate::unwrap_or;
 use crate::spatial::{Vec3, Area, InverseBlockIterator};
@@ -127,10 +127,12 @@ fn replace_nodes(inst: &mut InstBundle) {
 }
 
 
-fn verify_args(args: &InstArgs) -> anyhow::Result<()> {
-	anyhow::ensure!(args.node != args.new_node,
-		"node and new_node must be different.");
-	Ok(())
+fn verify_args(args: &InstArgs) -> ArgResult {
+	if args.node == args.new_node {
+		return ArgResult::error("node and new_node must be different.");
+	}
+
+	ArgResult::Ok
 }
 
 

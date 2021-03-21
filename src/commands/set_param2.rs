@@ -1,4 +1,4 @@
-use super::Command;
+use super::{Command, ArgResult};
 
 use crate::unwrap_or;
 use crate::spatial::{Vec3, Area, InverseBlockIterator};
@@ -107,10 +107,12 @@ fn set_param2(inst: &mut InstBundle) {
 }
 
 
-fn verify_args(args: &InstArgs) -> anyhow::Result<()> {
-	anyhow::ensure!(args.area.is_some() || args.node.is_some(),
-		"An area and/or node must be provided.");
-	Ok(())
+fn verify_args(args: &InstArgs) -> ArgResult {
+	if args.area.is_none() && args.node.is_none() {
+		return ArgResult::error("An area and/or node must be provided.");
+	}
+
+	ArgResult::Ok
 }
 
 
