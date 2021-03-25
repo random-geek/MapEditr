@@ -92,8 +92,7 @@ fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 		ArgType::Items =>
 			Arg::with_name("items")
 				.long("items")
-				.min_values(0)
-				.max_values(1),
+				.min_values(0),
 		ArgType::NewItem =>
 			Arg::with_name("new_item")
 				.takes_value(true),
@@ -252,6 +251,7 @@ fn print_log(log_type: LogType, msg: String) {
 
 fn get_confirmation() -> bool {
 	print!("Proceed? (Y/n): ");
+	std::io::stdout().flush().unwrap();
 	let mut result = String::new();
 	std::io::stdin().read_line(&mut result).unwrap();
 	result.trim().to_ascii_lowercase() == "y"

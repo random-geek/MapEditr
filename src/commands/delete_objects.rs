@@ -1,48 +1,77 @@
-use super::Command;
+use super::{Command, ArgResult};
 
 use crate::unwrap_or;
 use crate::spatial::Area;
-use crate::instance::{ArgType, InstBundle};
+use crate::instance::{ArgType, InstArgs, InstBundle};
 use crate::map_block::{MapBlock, StaticObject, LuaEntityData};
 use crate::utils::{query_keys, to_bytes, to_slice, fmt_big_num};
 
 use memmem::{Searcher, TwoWaySearcher};
 
 const ITEM_ENT_NAME: &[u8] = b"__builtin:item";
+const ITEM_NAME_PAT: &[u8] = b"[\"itemstring\"] = \"";
+
+
+fn verify_args(args: &InstArgs) -> ArgResult {
+	if args.object.is_some() && args.items.is_some() {
+		return ArgResult::error("Cannot use both --obj and --items.");
+	}
+	ArgResult::Ok
+}
 
 
 #[inline]
+fn get_item_name<'a>(data: &'a [u8], searcher: &TwoWaySearcher) -> &'a[u8] {
+	if data.starts_with(b"return") {
+		if let Some(idx) = searcher.search_in(data) {
+			let name = &data[idx + ITEM_NAME_PAT.len()..]
+				.split(|&c| c == b' ' || c == b'"').next();
+			if let Some(n) = name {
+				return n;
+			}
+		}
+		b""
+	} else {
+		data
+	}
+}
+
+
 fn can_delete(
 	obj: &StaticObject,
 	area: &Option<Area>,
 	invert: bool,
 	obj_name: &Option<Vec<u8>>,
-	item_searcher: &Option<TwoWaySearcher>
+	item_names: &[Vec<u8>],
+	item_name_searcher: &TwoWaySearcher
 ) -> bool {
 	// Check area requirement
 	if let Some(a) = area {
 		const DIV_FAC: i32 = 10_000;
-		let rounded_pos = obj.f_pos.map(
-			|v| (v - DIV_FAC / 2).div_euclid(DIV_FAC));
+		let rounded_pos = obj.f_pos
+			.map(|v| (v + DIV_FAC / 2).div_euclid(DIV_FAC));
 		if a.contains(rounded_pos) == invert {
 			return false; // Object not included in area.
 		}
 	}
 
-	// Check name requirement
-	if let Some(n) = obj_name {
+	// Check name requirements
+	if let Some(name) = obj_name {
 		if let Ok(le_data) = LuaEntityData::deserialize(obj) {
-			if &le_data.name != n {
+			if &le_data.name != name {
 				return false; // Object name does not match.
 			}
 
-			if let Some(is) = item_searcher {
-				if is.search_in(&le_data.data).is_none() {
-					return false; // Item entity name does not match.
+			if !item_names.is_empty() {
+				let item_name =
+					get_item_name(&le_data.data, &item_name_searcher);
+				if !item_names.iter().any(|n| n == item_name) {
+					// Item entity's item name does not match.
+					return false
 				}
 			}
 		} else {
-			return false; // Unsupported object type, don't delete it.
+			return false; // Keep invalid or unsupported objects.
 		}
 	}
 
@@ -51,20 +80,18 @@ fn can_delete(
 
 
 fn delete_objects(inst: &mut InstBundle) {
-	let search_obj = if inst.args.items.is_some() {
+	let obj_name = if inst.args.items.is_some() {
 		Some(ITEM_ENT_NAME.to_owned())
 	} else {
 		inst.args.object.as_ref().map(to_bytes)
 	};
 
-	// search_item will be Some if (1) item search is enabled and (2) an item
-	// is specified.
-	let search_item = inst.args.items.as_ref().and_then(|items| items.get(0))
-		.map(to_bytes);
-	let item_searcher = search_item.as_ref().map(|s| TwoWaySearcher::new(s));
+	let item_names: Vec<_> = inst.args.items.as_ref().unwrap_or(&Vec::new())
+		.iter().map(to_bytes).collect();
+	let item_name_searcher = TwoWaySearcher::new(ITEM_NAME_PAT);
 
 	let keys = query_keys(&mut inst.db, &mut inst.status,
-		to_slice(&search_obj), inst.args.area, inst.args.invert, true);
+		to_slice(&obj_name), inst.args.area, inst.args.invert, true);
 
 	inst.status.begin_editing();
 	let mut count: u64 = 0;
@@ -75,13 +102,14 @@ fn delete_objects(inst: &mut InstBundle) {
 			{ inst.status.inc_failed(); continue; });
 
 		let mut modified = false;
-		for i in (0..block.static_objects.len()).rev() {
+		for i in (0 .. block.static_objects.len()).rev() {
 			if can_delete(
 				&block.static_objects[i],
 				&inst.args.area,
 				inst.args.invert,
-				&search_obj,
-				&item_searcher
+				&obj_name,
+				&item_names,
+				&item_name_searcher
 			) {
 				block.static_objects.remove(i);
 				modified = true;
@@ -102,17 +130,38 @@ fn delete_objects(inst: &mut InstBundle) {
 pub fn get_command() -> Command {
 	Command {
 		func: delete_objects,
-		verify_args: None,
+		verify_args: Some(verify_args),
 		args: vec![
 			(ArgType::Area(false), "Area in which to delete objects"),
-			(ArgType::Invert, "Delete all objects outside the area"),
-			(ArgType::Object,
-				"Name of object to delete. If not specified, all objects will \
-				be deleted"),
+			(ArgType::Invert,
+					"If present, delete objects *outside* the given area."),
+			(ArgType::Object, "Name of object to delete"),
 			(ArgType::Items,
-				"Delete item entities. Optionally specify an item name to \
-				delete."),
+				"If present, delete item entities. Optionally list one or \
+				more item names after `--items` to delete only those items."),
 		],
-		help: "Delete certain objects (entities)."
+		help: "Delete certain objects and/or item entities."
+	}
+}
+
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn test_delete_objects() {
+		let searcher = TwoWaySearcher::new(ITEM_NAME_PAT);
+		let pairs: &[(&[u8], &[u8])] = &[
+			(b"default:glass", b"default:glass"),
+			(b"return {}", b""),
+			(b"return {[\"itemstring\"] = \"\", [\"age\"] = 100}", b""),
+			(b"return {[\"itemstring\"] = \"mod:item\"}", b"mod:item"),
+			(b"return {[\"age\"] = 400, [\"itemstring\"] = \"one:two 99 32\"}",
+				b"one:two"),
+		];
+		for &(data, name) in pairs {
+			assert_eq!(get_item_name(data, &searcher), name);
+		}
 	}
 }

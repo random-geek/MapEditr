@@ -167,8 +167,9 @@ fn overlay_with_offset(inst: &mut InstBundle) {
 		);
 
 		let dst_part_abs = dst_area.map_or(
+			// If no area is given, the destination part is the whole mapblock.
 			Area::new(dst_pos * 16, dst_pos * 16 + 15),
-			|ref a| a.abs_block_overlap(dst_pos).unwrap()
+			|a| a.abs_block_overlap(dst_pos).unwrap()
 		);
 		let src_part_abs = dst_part_abs - offset;
 		let src_blocks_needed = src_part_abs.to_touching_block_area();
@@ -224,11 +225,13 @@ pub fn get_command() -> Command {
 		func: overlay,
 		verify_args: Some(verify_args),
 		args: vec![
-			(ArgType::InputMapPath, "Path to input map file"),
-			(ArgType::Area(false), "Area to overlay"),
-			(ArgType::Invert, "Overlay all nodes outside the given area"),
-			(ArgType::Offset(false), "Vector to offset nodes by"),
+			(ArgType::InputMapPath, "Path to the source map/world"),
+			(ArgType::Area(false), "Area to copy from. If not specified, \
+				everything from the source map will be copied."),
+			(ArgType::Invert,
+				"If present, copy everything *outside* the given area."),
+			(ArgType::Offset(false), "Vector to shift nodes by when copying"),
 		],
-		help: "Copy part or all of one world/map into another."
+		help: "Copy part or all of a source map into the main map."
 	}
 }

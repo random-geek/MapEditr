@@ -8,7 +8,7 @@ use crate::utils::{query_keys, to_bytes, fmt_big_num};
 
 
 fn set_meta_var(inst: &mut InstBundle) {
-	// TODO: Bytes input
+	// TODO: Bytes input, create/delete variables
 	let key = to_bytes(inst.args.key.as_ref().unwrap());
 	let value = to_bytes(inst.args.value.as_ref().unwrap());
 	let nodes: Vec<_> = inst.args.nodes.iter().map(to_bytes).collect();
@@ -22,7 +22,8 @@ fn set_meta_var(inst: &mut InstBundle) {
 	for block_key in keys {
 		inst.status.inc_done();
 		let data = inst.db.get_block(block_key).unwrap();
-		let mut block = unwrap_or!(MapBlock::deserialize(&data), continue);
+		let mut block = unwrap_or!(MapBlock::deserialize(&data),
+			{ inst.status.inc_failed(); continue; });
 
 		let node_data = block.node_data.get_ref();
 		let node_ids: Vec<_> = nodes.iter()
@@ -32,7 +33,8 @@ fn set_meta_var(inst: &mut InstBundle) {
 		}
 
 		let mut meta = unwrap_or!(
-			NodeMetadataList::deserialize(block.metadata.get_ref()), continue);
+			NodeMetadataList::deserialize(block.metadata.get_ref()),
+			{ inst.status.inc_failed(); continue; });
 
 		let block_corner = Vec3::from_block_key(block_key) * 16;
 		let mut modified = false;

@@ -50,6 +50,8 @@ WorldEdit `//fixlight` command.
 
 ## Commands
 
+TODO: Unify documentation style, provide examples.
+
 ### clone
 
 Usage: `clone --p1 x y z --p2 x y z --offset x y z`
@@ -59,9 +61,9 @@ Clone (copy) the contents of an area to a new location.
 Arguments:
 
 - `--p1, --p2`: Area to clone.
-- `--offset`: Vector to shift the area by. For example, to copy an area 50
-nodes downward (negative Y direction), use `--offset 0 -50 0`. Directions may
-be determined using Minetest's F5 debug menu.
+- `--offset x y z`: Vector to shift the area by. For example, to copy an area
+50 nodes downward (negative Y direction), use `--offset 0 -50 0`. Directions
+may be determined using Minetest's F5 debug menu.
 
 This command copies nodes, param1, param2, and metadata. Nothing will be copied
 from or into mapblocks that are not yet generated.
@@ -92,55 +94,57 @@ contents) are also deleted.
 
 Arguments:
 
-- `--node`: (Optional) Name of node to delete metadata from. If not specified,
-metadata will be deleted from any node.
+- `--node <node>`: (Optional) Name of node to delete metadata from. If not
+specified, metadata will be deleted from any node.
 - `--p1, --p2`: (Optional) Area in which to delete metadata. If not specified,
 metadata will be deleted everywhere.
 - `--invert`: If present, delete metadata *outside* the given area.
 
 ### deleteobjects
 
-Usage: `deleteobjects [--obj <object>] [--items [item]] [--p1 x y z] [--p2 x y z] [--invert]`
+Usage: `deleteobjects [--obj <object>] [--items [items]] [--p1 x y z] [--p2 x y z] [--invert]`
 
-Delete objects/entities, including item entities (dropped items).
+Delete certain objects (entities) and/or item entities (dropped items).
 
 Arguments:
 
-- `--obj`: Name of object to delete, e.g. "boats:boat". If not specified,
-all objects will be deleted.
-- `--items [item]`: Delete item entities (dropped items). If an optional item
-name is specified, only items with that name will be deleted.
-- `--p1, --p2`: Area in which to delete objects. If not specified, objects will
-be deleted everywhere.
-- `--invert`: Delete objects *outside* the given area.
+- `--obj <object>`: (Optional) Name of object to delete, e.g. "boats:boat".
+- `--items [items]`: If present, delete only item entities (dropped items). If
+one or more item names are listed after `--items`, only those items will be
+deleted.
+- `--p1, --p2`: (Optional) Area in which to delete objects. If not specified,
+objects will be deleted everywhere.
+- `--invert`: If present, delete objects *outside* the given area.
+
+`--obj` and `--items` cannot be used simultaneously.
 
 ### deletetimers
 
 Usage: `deletetimers [--node <node>] [--p1 x y z] [--p2 x y z] [--invert]`
 
-Delete node timers of a certain node and/or within a certain area.
+Delete node timers of certain nodes.
 
 Arguments:
 
-- `--node`: Name of node to modify. If not specified, the node timers of all
-nodes will be deleted.
-- `--p1, --p2`: Area in which to delete node timers.
-- `--invert`: Only delete node timers *outside* the given area.
+- `--node <node>`: If specified, only delete node timers from nodes with the
+given name.
+- `--p1, --p2`: (Optional) Area in which to delete node timers.
+- `--invert`: Delete node timers *outside* the given area.
 
 ### fill
 
 Usage: `fill --p1 x y z --p2 x y z [--invert] <new_node>`
 
-Fills the given area with one node. The affected mapblocks must be already
-generated for fill to work.
+Fills everything inside or outside an area with one node. Mapblocks that are
+not yet generated will not be affected.
 
 This command does not affect param2, node metadata, etc.
 
 Arguments:
 
-- `new_node`: Name of node to fill the area with.
 - `--p1, --p2`: Area to fill.
-- `--invert`: Fill everything *outside* the given area.
+- `--invert`: Fill all generated nodes *outside* the given area.
+- `<new_node>`: Name of node to fill the area with.
 
 ### overlay
 
@@ -150,12 +154,12 @@ Copy part or all of a source map into the main map.
 
 Arguments:
 
-- `input_map`: Path to source map/world. This will not be modified.
+- `<input_map>`: Path to the source map/world. This world will not be modified.
 - `--p1, --p2`: Area to copy from. If not specified, MapEditr will try to
-copy everything from the input map file.
+copy everything from the source map.
 - `--invert`: If present, copy everything *outside* the given area.
-- `--offset`: Offset to move nodes by when copying; default is no offset.
-Currently, an offset cannot be used with an inverted selection.
+- `--offset x y z`: Vector to shift nodes by when copying; default is no
+offset. Currently, an offset cannot be used with an inverted selection.
 
 This command will always copy nodes, param1, param2, and metadata. If no
 offset is used, objects/entities and node timers may also be copied.
@@ -168,8 +172,7 @@ mapblocks can be copied verbatim.
 
 ### replaceininv
 
-Usage: `replaceininv [--delete] [--deletemeta] [--nodes <nodes>] [--p1 x y z]
-[--p2 x y z] [--invert] <item> [new_item]`
+Usage: `replaceininv [--delete] [--deletemeta] [--nodes <nodes>] [--p1 x y z] [--p2 x y z] [--invert] <item> [new_item]`
 
 Replace or delete certain items in node inventories.
 

@@ -10,7 +10,6 @@ mod cmd_line;
 
 
 // TODO: Check for unnecessary #derives!
-// TODO: Check mapedit TODOs and implement what's needed.
 fn main() {
 	// TODO: Add GUI. hmm...
 	cmd_line::run_cmd_line();

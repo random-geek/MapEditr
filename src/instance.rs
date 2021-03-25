@@ -140,7 +140,6 @@ impl StatusServer {
 	}
 
 	pub fn inc_failed(&mut self) {
-		// TODO: Proper error handling for all commands.
 		self.status.lock().unwrap().blocks_failed += 1;
 	}
 

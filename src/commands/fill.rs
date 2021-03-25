@@ -44,10 +44,8 @@ fn fill(inst: &mut InstBundle) {
 
 		let pos = Vec3::from_block_key(key);
 		let data = inst.db.get_block(key).unwrap();
-		let mut block = unwrap_or!(MapBlock::deserialize(&data), {
-			inst.status.inc_failed();
-			continue;
-		});
+		let mut block = unwrap_or!(MapBlock::deserialize(&data),
+			{ inst.status.inc_failed(); continue; });
 
 		if area.contains_block(pos) != area.touches_block(pos) {
 			// Fill part of block
@@ -82,8 +80,9 @@ pub fn get_command() -> Command {
 		verify_args: None,
 		args: vec![
 			(ArgType::Area(true), "Area to fill"),
-			(ArgType::NewNode, "Name of node to fill area with"),
-			(ArgType::Invert, "Fill all generated areas outside the area.")
+			(ArgType::Invert,
+				"Fill all generated nodes *outside* the given area."),
+			(ArgType::NewNode, "Name of node to fill the area with"),
 		],
 		help: "Fill the entire area with one node."
 	}

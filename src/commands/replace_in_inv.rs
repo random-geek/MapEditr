@@ -79,7 +79,8 @@ fn replace_in_inv(inst: &mut InstBundle) {
 	for key in keys {
 		inst.status.inc_done();
 		let data = inst.db.get_block(key).unwrap();
-		let mut block = unwrap_or!(MapBlock::deserialize(&data), continue);
+		let mut block = unwrap_or!(MapBlock::deserialize(&data),
+			{ inst.status.inc_failed(); continue; });
 
 		let node_data = block.node_data.get_ref();
 		let node_ids: Vec<_> = nodes.iter()
@@ -89,7 +90,8 @@ fn replace_in_inv(inst: &mut InstBundle) {
 		}
 
 		let mut meta = unwrap_or!(
-			NodeMetadataList::deserialize(block.metadata.get_ref()), continue);
+			NodeMetadataList::deserialize(block.metadata.get_ref()),
+			{ inst.status.inc_failed(); continue; });
 
 		let block_corner = Vec3::from_block_key(key) * 16;
 		let mut modified = false;

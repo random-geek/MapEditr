@@ -19,7 +19,8 @@ fn delete_timers(inst: &mut InstBundle) {
 	for key in keys {
 		inst.status.inc_done();
 		let data = inst.db.get_block(key).unwrap();
-		let mut block = unwrap_or!(MapBlock::deserialize(&data), continue);
+		let mut block = unwrap_or!(MapBlock::deserialize(&data),
+			{ inst.status.inc_failed(); continue; });
 
 		let node_id = node.as_deref().and_then(|n| block.nimap.get_id(n));
 		if node.is_some() && node_id.is_none() {
@@ -68,11 +69,11 @@ pub fn get_command() -> Command {
 		verify_args: None,
 		args: vec![
 			(ArgType::Area(false), "Area in which to delete timers"),
-			(ArgType::Invert, "Delete all timers outside the given area."),
+			(ArgType::Invert, "Delete node timers *outside* the given area."),
 			(ArgType::Node(false),
-				"Node to delete timers from. If not specified, all node \
-				timers will be deleted.")
+				"Node to delete timers from. If not specified, node timers \
+				will be deleted from any node.")
 		],
-		help: "Delete node timers."
+		help: "Delete node timers of certain nodes."
 	}
 }

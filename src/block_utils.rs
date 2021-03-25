@@ -1,7 +1,6 @@
-// TODO: Move this file somewhere else?
 use std::collections::BTreeMap;
 
-use crate::map_block::{MapBlock, NodeMetadataList};
+use crate::map_block::{MapBlock, NodeMetadataList, NameIdMap};
 use crate::spatial::{Vec3, Area};
 
 
@@ -81,7 +80,7 @@ pub fn merge_metadata(
 	// Warning: diff can be negative!
 	let diff = offset.x + offset.y * 16 + offset.z * 256;
 
-	// Delete any existing metadata in the destination block
+	// Delete any existing metadata in the destination area.
 	let mut to_delete = Vec::with_capacity(dst_meta.len());
 	for (&idx, _) in dst_meta.iter() {
 		let pos = Vec3::from_u16_key(idx);
@@ -115,27 +114,26 @@ pub fn clean_name_id_map(block: &mut MapBlock) {
 	}
 
 	// Rebuild the name-ID map.
-	let mut new_nimap = BTreeMap::new();
-	let mut map = vec![0u16; id_count];
-	for id in 0..id_count {
+	let mut new_nimap = NameIdMap(BTreeMap::new());
+	let mut map = vec![0u16; id_count]; // map[old_node_id] == new_node_id
+	for (&id, name) in &block.nimap.0 {
 		// Skip unused IDs.
-		if !used[id] {
+		if !used[id as usize] {
 			continue;
 		}
 
-		let name = &block.nimap.0[&(id as u16)];
-		if let Some(first_id) = new_nimap.iter().position(|(_, v)| v == name) {
+		if let Some(first_id) = new_nimap.get_id(&name) {
 			// Name is already in the map; map old, duplicate ID to the
 			// existing ID.
-			map[id] = first_id as u16;
+			map[id as usize] = first_id as u16;
 		} else {
 			// Name is not yet in the map; assign it to the next ID.
-			new_nimap.insert(new_nimap.len() as u16, name.clone());
+			new_nimap.0.insert(new_nimap.0.len() as u16, name.clone());
 			// Map old ID to newly-inserted ID.
-			map[id] = new_nimap.len() as u16 - 1;
+			map[id as usize] = new_nimap.0.len() as u16 - 1;
 		}
 	}
-	block.nimap.0 = new_nimap;
+	block.nimap = new_nimap;
 
 	// Re-assign node IDs.
 	for id in &mut nd.nodes {
