@@ -6,15 +6,15 @@ use crate::instance::{ArgType, InstArgs, InstBundle};
 use crate::map_block::{MapBlock, NodeMetadataList, NodeMetadataListExt};
 use crate::utils::{query_keys, to_bytes, fmt_big_num};
 
-const NEWLINE: u8 = b'\n';
-const SPACE: u8 = b' ';
-
 
 fn do_replace(inv: &mut Vec<u8>, item: &[u8], new_item: &[u8], del_meta: bool)
 	-> u64
 {
+	const NEWLINE: u8 = b'\n';
+	const SPACE: u8 = b' ';
+
 	let delete = new_item.is_empty();
-	let mut new_inv = Vec::with_capacity(inv.len());
+	let mut new_inv = Vec::new();
 	let mut mods = 0;
 
 	for line in inv.split(|&x| x == NEWLINE) {
@@ -66,7 +66,7 @@ fn do_replace(inv: &mut Vec<u8>, item: &[u8], new_item: &[u8], del_meta: bool)
 fn replace_in_inv(inst: &mut InstBundle) {
 	let item = to_bytes(inst.args.item.as_ref().unwrap());
 	let new_item = inst.args.new_item.as_ref().map(to_bytes)
-		.unwrap_or(if inst.args.delete_item { vec![] } else { item.clone() });
+		.unwrap_or(if inst.args.delete { vec![] } else { item.clone() });
 
 	let nodes: Vec<_> = inst.args.nodes.iter().map(to_bytes).collect();
 	let keys = query_keys(&mut inst.db, &mut inst.status,
@@ -132,12 +132,14 @@ fn replace_in_inv(inst: &mut InstBundle) {
 
 
 fn verify_args(args: &InstArgs) -> ArgResult {
-	if args.new_item.is_none() && !args.delete_item && !args.delete_meta {
+	if args.new_item.is_none() && !args.delete && !args.delete_meta {
 		return ArgResult::error(
 			"new_item is required unless --delete or --deletemeta is used.");
-	} else if args.new_item.is_some() && args.delete_item {
+	} else if args.new_item.is_some() && args.delete {
 		return ArgResult::error(
 			"Cannot delete items if new_item is specified.");
+	} else if args.item == args.new_item && !args.delete_meta {
+		return ArgResult::error("item and new_item cannot be the same.");
 	}
 	ArgResult::Ok
 }
@@ -150,13 +152,15 @@ pub fn get_command() -> Command {
 		args: vec![
 			(ArgType::Item, "Name of the item to replace/delete"),
 			(ArgType::NewItem, "Name of the new item, if replacing items."),
+			(ArgType::Delete, "Delete items instead of replacing them."),
 			(ArgType::DeleteMeta, "Delete metadata of affected items."),
-			(ArgType::DeleteItem, "Delete items instead of replacing them."),
-			(ArgType::Area(false), "Area in which to modify inventories"),
-			(ArgType::Invert, "Modify inventories outside the given area."),
-			(ArgType::Nodes, "Names of nodes to modify inventories of"),
+			(ArgType::Nodes,
+				"Names of one or more nodes to modify inventories of"),
+			(ArgType::Area(false), "Area in which to modify node inventories"),
+			(ArgType::Invert,
+				"Modify node inventories *outside* the given area."),
 		],
-		help: "Replace or delete items in node inventories."
+		help: "Replace, delete, or modify items in certain node inventories."
 	}
 }
 

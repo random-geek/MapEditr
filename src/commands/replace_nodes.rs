@@ -19,7 +19,7 @@ fn do_replace(
 	let block_pos = Vec3::from_block_key(key);
 	let mut replaced = 0;
 
-	// Replace nodes in a portion of a mapblock.
+	// Replace nodes in a portion of the mapblock.
 	if area
 		.filter(|a| a.contains_block(block_pos) != a.touches_block(block_pos))
 		.is_some()
@@ -144,7 +144,7 @@ pub fn get_command() -> Command {
 			(ArgType::Node(true), "Name of node to replace"),
 			(ArgType::NewNode, "Name of node to replace with"),
 			(ArgType::Area(false), "Area in which to replace nodes"),
-			(ArgType::Invert, "Replace nodes outside the given area")
+			(ArgType::Invert, "Replace nodes *outside* the given area.")
 		],
 		help: "Replace all of one node with another node."
 	}

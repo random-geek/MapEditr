@@ -23,11 +23,11 @@ pub enum ArgType {
 	Item,
 	Items,
 	NewItem,
+	Delete,
 	DeleteMeta,
-	DeleteItem,
 	Key,
 	Value,
-	Param2Val,
+	Param2,
 }
 
 
@@ -47,11 +47,11 @@ pub struct InstArgs {
 	pub item: Option<String>,
 	pub items: Option<Vec<String>>,
 	pub new_item: Option<String>,
+	pub delete: bool,
 	pub delete_meta: bool,
-	pub delete_item: bool,
 	pub key: Option<String>,
 	pub value: Option<String>,
-	pub param2_val: Option<u8>,
+	pub param2: Option<u8>,
 }
 
 

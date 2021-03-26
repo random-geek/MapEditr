@@ -51,7 +51,7 @@ fn set_param2_partial(block: &mut MapBlock, area: Area, invert: bool,
 
 
 fn set_param2(inst: &mut InstBundle) {
-	let param2_val = inst.args.param2_val.unwrap();
+	let param2_val = inst.args.param2.unwrap();
 	let node = inst.args.node.as_ref().map(to_bytes);
 
 	let keys = query_keys(&mut inst.db, &mut inst.status,
@@ -103,13 +103,14 @@ fn set_param2(inst: &mut InstBundle) {
 
 	inst.status.end_editing();
 	tk.print(&mut inst.status);
-	inst.status.log_info(format!("{} nodes set.", fmt_big_num(count)));
+	inst.status.log_info(format!("Set param2 of {} nodes.",
+		fmt_big_num(count)));
 }
 
 
 fn verify_args(args: &InstArgs) -> ArgResult {
 	if args.area.is_none() && args.node.is_none() {
-		return ArgResult::error("An area and/or node must be provided.");
+		return ArgResult::error("An area and/or node is required.");
 	}
 
 	ArgResult::Ok
@@ -121,11 +122,11 @@ pub fn get_command() -> Command {
 		func: set_param2,
 		verify_args: Some(verify_args),
 		args: vec![
-			(ArgType::Area(false), "Area in which to set param2 values"),
-			(ArgType::Invert, "Set param2 values outside the given area."),
+			(ArgType::Param2, "New param2 value, between 0 and 255"),
 			(ArgType::Node(false), "Node to set param2 values of"),
-			(ArgType::Param2Val, "New param2 value")
+			(ArgType::Area(false), "Area in which to set param2 values"),
+			(ArgType::Invert, "Set param2 values *outside* the given area."),
 		],
-		help: "Set param2 value of certain nodes."
+		help: "Set param2 values of certain nodes."
 	}
 }

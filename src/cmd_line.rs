@@ -48,7 +48,7 @@ fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 				.help(help_msg)
 		];
 	}
-	// TODO: Ensure arguments are correctly defined.
+
 	let arg = match arg_type {
 		ArgType::Area(_) => unreachable!(),
 		ArgType::InputMapPath =>
@@ -65,10 +65,9 @@ fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 				.value_names(&["x", "y", "z"])
 				.required(req),
 		ArgType::Node(req) => {
-			let a = Arg::with_name("node")
-				.required(req);
+			let a = Arg::with_name("node");
 			if req {
-				a
+				a.required(true)
 			} else {
 				a.long("node").takes_value(true)
 			}
@@ -96,22 +95,21 @@ fn to_cmd_line_args<'a>(tup: &(ArgType, &'a str))
 		ArgType::NewItem =>
 			Arg::with_name("new_item")
 				.takes_value(true),
+		ArgType::Delete =>
+			Arg::with_name("delete")
+				.long("delete"),
 		ArgType::DeleteMeta =>
 			Arg::with_name("delete_meta")
 				.long("deletemeta"),
-		ArgType::DeleteItem =>
-			Arg::with_name("delete_item")
-				.long("delete"),
 		ArgType::Key =>
 			Arg::with_name("key")
 				.takes_value(true)
 				.required(true),
 		ArgType::Value =>
 			Arg::with_name("value")
-				.takes_value(true)
-				.required(true),
-		ArgType::Param2Val =>
-			Arg::with_name("param2_val")
+				.takes_value(true),
+		ArgType::Param2 =>
+			Arg::with_name("param2")
 				.required(true),
 	}.help(help_msg);
 
@@ -129,6 +127,7 @@ fn parse_cmd_line_args() -> anyhow::Result<InstArgs> {
 		SubCommand::with_name(cmd_name)
 			.about(cmd.help)
 			.args(&args)
+			.after_help("For additional information, see the manual.")
 	});
 
 	let app = App::new("MapEditr")
@@ -144,10 +143,9 @@ fn parse_cmd_line_args() -> anyhow::Result<InstArgs> {
 			.global(true)
 			.help("Skip the default confirmation prompt.")
 		)
-		// TODO: Move map arg to subcommands?
 		.arg(Arg::with_name("map")
 			.required(true)
-			.help("Path to world directory or map database to edit.")
+			.help("Path to world directory or map database to edit")
 		)
 		.setting(AppSettings::SubcommandRequired)
 		.subcommands(app_commands);
@@ -164,9 +162,9 @@ fn parse_cmd_line_args() -> anyhow::Result<InstArgs> {
 		input_map_path: sub_matches.value_of("input_map").map(str::to_string),
 		area: {
 			let p1_maybe = sub_matches.values_of("p1").map(arg_to_pos)
-				.transpose().context("Invalid p1 value")?;
+				.transpose().context("Invalid p1 value.")?;
 			let p2_maybe = sub_matches.values_of("p2").map(arg_to_pos)
-				.transpose().context("Invalid p2 value")?;
+				.transpose().context("Invalid p2 value.")?;
 			if let (Some(p1), Some(p2)) = (p1_maybe, p2_maybe) {
 				Some(Area::from_unsorted(p1, p2))
 			} else {
@@ -175,7 +173,7 @@ fn parse_cmd_line_args() -> anyhow::Result<InstArgs> {
 		},
 		invert: sub_matches.is_present("invert"),
 		offset: sub_matches.values_of("offset").map(arg_to_pos).transpose()
-			.context("Invalid offset value")?,
+			.context("Invalid offset value.")?,
 		node: sub_matches.value_of("node").map(str::to_string),
 		nodes: sub_matches.values_of("nodes").iter_mut().flatten()
 			.map(str::to_string).collect(),
@@ -185,11 +183,11 @@ fn parse_cmd_line_args() -> anyhow::Result<InstArgs> {
 		items: sub_matches.values_of("items")
 			.map(|v| v.map(str::to_string).collect()),
 		new_item: sub_matches.value_of("new_item").map(str::to_string),
+		delete: sub_matches.is_present("delete"),
 		delete_meta: sub_matches.is_present("delete_meta"),
-		delete_item: sub_matches.is_present("delete_item"),
 		key: sub_matches.value_of("key").map(str::to_string),
 		value: sub_matches.value_of("value").map(str::to_string),
-		param2_val: sub_matches.value_of("param2_val").map(|val| val.parse())
+		param2: sub_matches.value_of("param2_val").map(|val| val.parse())
 			.transpose().context("Invalid param2 value.")?,
 	})
 }

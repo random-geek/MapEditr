@@ -1,16 +1,30 @@
-use super::Command;
+use super::{Command, ArgResult};
 
 use crate::unwrap_or;
 use crate::spatial::Vec3;
-use crate::instance::{ArgType, InstBundle};
+use crate::instance::{ArgType, InstArgs, InstBundle};
 use crate::map_block::{MapBlock, NodeMetadataList, NodeMetadataListExt};
 use crate::utils::{query_keys, to_bytes, fmt_big_num};
 
 
+fn verify_args(args: &InstArgs) -> ArgResult {
+	if args.value.is_none() && !args.delete {
+		return ArgResult::error(
+			"value is required unless deleting the variable.");
+	} else if args.value.is_some() && args.delete {
+		return ArgResult::error(
+			"value cannot be used when deleting the variable.");
+	} else if args.value == Some(String::new()) {
+		return ArgResult::error("Metadata value cannot be empty.");
+	}
+	ArgResult::Ok
+}
+
+
 fn set_meta_var(inst: &mut InstBundle) {
-	// TODO: Bytes input, create/delete variables
+	// TODO: Bytes input
 	let key = to_bytes(inst.args.key.as_ref().unwrap());
-	let value = to_bytes(inst.args.value.as_ref().unwrap());
+	let value = to_bytes(inst.args.value.as_ref().unwrap_or(&String::new()));
 	let nodes: Vec<_> = inst.args.nodes.iter().map(to_bytes).collect();
 
 	let keys = query_keys(&mut inst.db, &mut inst.status,
@@ -41,10 +55,9 @@ fn set_meta_var(inst: &mut InstBundle) {
 
 		for (&idx, data) in &mut meta {
 			let pos = Vec3::from_u16_key(idx);
-			let abs_pos = pos + block_corner;
 
 			if let Some(a) = inst.args.area {
-				if a.contains(abs_pos) == inst.args.invert {
+				if a.contains(pos + block_corner) == inst.args.invert {
 					continue;
 				}
 			}
@@ -54,8 +67,13 @@ fn set_meta_var(inst: &mut InstBundle) {
 				continue;
 			}
 
-			if let Some(val) = data.vars.get_mut(&key) {
-				val.0 = value.clone();
+			if data.vars.contains_key(&key) {
+				if inst.args.delete {
+					// Note: serialize() will cull any newly empty metadata.
+					data.vars.remove(&key);
+				} else {
+					data.vars.get_mut(&key).unwrap().0 = value.clone();
+				}
 				modified = true;
 				count += 1;
 			}
@@ -76,17 +94,18 @@ fn set_meta_var(inst: &mut InstBundle) {
 pub fn get_command() -> Command {
 	Command {
 		func: set_meta_var,
-		verify_args: None,
+		verify_args: Some(verify_args),
 		args: vec![
-			(ArgType::Key, "Name of key to set in metadata"),
-			(ArgType::Value, "Value to set in metadata"),
-			(ArgType::Area(false),
-				"Optional area in which to modify node metadata"),
-			(ArgType::Invert, "Modify node metadata outside the given area."),
+			(ArgType::Key, "Name of variable to set/delete"),
+			(ArgType::Value, "Value to set variable to, if setting a value"),
+			(ArgType::Delete, "Delete the variable."),
 			(ArgType::Nodes,
-				"Names of one or more nodes to modify. If not specified, all \
-				nodes with the specified variable will be modified.")
+				"Names of one or more nodes to modify. If not specified, any \
+				node with the given variable will be modified."),
+			(ArgType::Area(false),
+				"Area in which to modify node metadata"),
+			(ArgType::Invert, "Modify node metadata *outside* the given area."),
 		],
-		help: "Set a variable in node metadata."
+		help: "Set or delete a variable in node metadata of certain nodes."
 	}
 }

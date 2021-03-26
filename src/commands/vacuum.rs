@@ -25,6 +25,6 @@ pub fn get_command() -> Command {
 		func: vacuum,
 		verify_args: None,
 		args: Vec::new(),
-		help: "Rebuild map database to reduce its size."
+		help: "Rebuild the map database to reduce its size."
 	}
 }

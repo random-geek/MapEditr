@@ -174,27 +174,26 @@ mapblocks can be copied verbatim.
 
 Usage: `replaceininv [--delete] [--deletemeta] [--nodes <nodes>] [--p1 x y z] [--p2 x y z] [--invert] <item> [new_item]`
 
-Replace or delete certain items in node inventories.
+Replace, delete, or modify items in certain node inventories.
 
 Arguments:
 
-- `item`: Name of item to replace/delete
-- `new_item`: Name of new item, if replacing items.
+- `<item>`: Name of the item to replace/delete
+- `[new_item]`: Name of the new item, if replacing items.
 - `--delete`: Delete items instead of replacing them.
-- `--deletemeta`: Delete metadata of items. May be used with or without
-`new_item`, depending on whether items should also be replaced.
-- `--nodes`: Names of one or more nodes to replace in. If not specified, the
-item will be replaced in all node inventories.
+- `--deletemeta`: Delete metadata of affected items. May be used with or
+without `new_item`, depending on whether items should also be replaced.
+- `--nodes <nodes>`: Names of one or more nodes to modify inventories of. If
+not specified, items will be modified in any node with an inventory.
 - `--p1, --p2`: Area in which to modify node inventories. If not specified,
-items will be replaced in all node inventories.
-- `--invert`: Only modify node inventories *outside* the given area.
+items will be modified everywhere.
+- `--invert`: Modify node inventories *outside* the given area.
 
 Examples:
 
 Replace all written books in chests with unwritten books, deleting metadata:
 
-`replaceininv default:book_written default:book --deletemeta --nodes
-default:chest default:chest_locked`
+`replaceininv default:book_written default:book --deletemeta --nodes default:chest default:chest_locked`
 
 ### replacenodes
 
@@ -207,41 +206,45 @@ This command does not affect param2, metadata, etc.
 
 Arguments:
 
-- `node`: Name of node to replace.
-- `new_node`: Name of node to replace with.
-- `--p1, --p2`: Area in which to replace nodes. If not specified, nodes
-will be replaced across the entire map.
-- `--invert`: Only replace nodes *outside* the given area.
+- `<node>`: Name of node to replace.
+- `<new_node>`: Name of node to replace with.
+- `--p1, --p2`: Area in which to replace nodes. If not specified, nodes will be
+replaced across the entire map.
+- `--invert`: Replace nodes *outside* the given area.
 
 ### setmetavar
 
 Usage: `setmetavar [--node <node>] [--p1 x y z] [--p2 x y z] [--invert] <key> <value>`
 
-Set a variable in node metadata. This only works on metadata where the variable
-is already set.
+Set or delete a variable in node metadata of certain nodes. This only works on metadata
+where the variable is already set.
 
 Arguments:
 
-- `key`: Name of variable to set, e.g. `infotext`, `formspec`, etc.
-- `value`: Value to set variable to. This should be a string.
-- `--node`: Name of node to modify. If not specified, the variable will be
-set for all nodes that have it.
-- `--p1, --p2`: Area in which to modify nodes.
-- `--invert`: Only modify nodes *outside* the given area.
+- `<key>`: Name of variable to set/delete, e.g. `infotext`, `formspec`, etc.
+- `<value>`: Value to set variable to, if setting a value. This should be a
+string.
+- `--delete`: Delete the variable.
+- `--nodes <nodes>`: Names of one or more nodes to modify. If not specified,
+any node with the given variable will be modified.
+- `--p1, --p2`: Area in which to modify node metadata.
+- `--invert`: Modify node metadata *outside* the given area.
 
 ### setparam2
 
-Usage: `setparam2 [--node <node>] [--p1 x y z] [--p2 x y z] [--invert] <param2_val>`
+Usage: `setparam2 [--node <node>] [--p1 x y z] [--p2 x y z] [--invert] <param2>`
 
-Set param2 values of a certain node and/or within a certain area.
+Set param2 values of certain nodes.
 
 Arguments:
 
-- `param2_val`: Param2 value to set, between 0 and 255.
-- `--node`: Name of node to modify. If not specified, the param2 values of
-all nodes will be set.
-- `--p1, --p2`: Area in which to set param2.
-- `--invert`: Only set param2 *outside* the given area.
+- `<param2>`: New param2 value, between 0 and 255.
+- `--node <node>`: Name of node to modify. If not specified, the param2 values
+of any node will be set.
+- `--p1, --p2`: Area in which to set param2 values.
+- `--invert`: Set param2 values *outside* the given area.
+
+An area and/or node is required for setparam2.
 
 ### vacuum
 

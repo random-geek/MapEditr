@@ -6,6 +6,9 @@ use std::cmp::min;
 use memmem::{Searcher, TwoWaySearcher};
 
 
+const END_STR: &[u8; 13] = b"EndInventory\n";
+
+
 #[derive(Debug, Clone)]
 pub struct NodeMetadata {
 	pub vars: HashMap<Vec<u8>, (Vec<u8>, bool)>,
@@ -29,7 +32,6 @@ impl NodeMetadata {
 			vars.insert(name.clone(), (val, private));
 		}
 
-		const END_STR: &[u8; 13] = b"EndInventory\n";
 		let end_finder = TwoWaySearcher::new(END_STR);
 		let end = end_finder
 			.search_in(&data.get_ref()[data.position() as usize ..])
@@ -53,6 +55,11 @@ impl NodeMetadata {
 		}
 
 		data.write_all(&self.inv).unwrap();
+	}
+
+	/// Return `true` if the metadata contains no variables or inventory lists.
+	fn is_empty(&self) -> bool {
+		self.vars.is_empty() && self.inv.starts_with(END_STR)
 	}
 }
 
@@ -102,6 +109,9 @@ impl NodeMetadataListExt for NodeMetadataList {
 			data.write_u16::<BigEndian>(self.len() as u16).unwrap();
 
 			for (&pos, meta) in self {
+				if meta.is_empty() {
+					continue; // Skip empty metadata.
+				}
 				data.write_u16::<BigEndian>(pos).unwrap();
 				meta.serialize(&mut data, version);
 			}
