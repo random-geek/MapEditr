@@ -132,13 +132,12 @@ pub fn get_command() -> Command {
 		func: delete_objects,
 		verify_args: Some(verify_args),
 		args: vec![
-			(ArgType::Area(false), "Area in which to delete objects"),
-			(ArgType::Invert,
-					"If present, delete objects *outside* the given area."),
 			(ArgType::Object, "Name of object to delete"),
 			(ArgType::Items,
-				"If present, delete item entities. Optionally list one or \
-				more item names after `--items` to delete only those items."),
+				"Delete only item entities. Optionally list one or more item \
+				names after `--items` to delete only those items."),
+			(ArgType::Area(false), "Area in which to delete objects"),
+			(ArgType::Invert, "Delete objects *outside* the given area."),
 		],
 		help: "Delete certain objects and/or item entities."
 	}

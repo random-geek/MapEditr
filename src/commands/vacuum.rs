@@ -13,7 +13,7 @@ fn vacuum(inst: &mut InstBundle) {
 
 	match res {
 		Ok(_) => {
-			inst.status.log_info(format!("Completed vacuum."));
+			inst.status.log_info("Completed vacuum.");
 		},
 		Err(e) => inst.status.log_error(format!("Vacuum failed: {}.", e))
 	}

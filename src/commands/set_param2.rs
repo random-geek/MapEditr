@@ -60,8 +60,6 @@ fn set_param2(inst: &mut InstBundle) {
 	inst.status.begin_editing();
 
 	let mut count: u64 = 0;
-	use crate::time_keeper::TimeKeeper;
-	let mut tk = TimeKeeper::new();
 	for key in keys {
 		inst.status.inc_done();
 
@@ -81,7 +79,6 @@ fn set_param2(inst: &mut InstBundle) {
 			.filter(|a| a.contains_block(pos) != a.touches_block(pos))
 		{ // Modify part of block
 			let block_part = area.rel_block_overlap(pos).unwrap();
-			let _t = tk.get_timer("set_param2_partial");
 			count += set_param2_partial(&mut block,
 				block_part, inst.args.invert, node_id, param2_val);
 		} else { // Modify whole block
@@ -102,7 +99,6 @@ fn set_param2(inst: &mut InstBundle) {
 	}
 
 	inst.status.end_editing();
-	tk.print(&mut inst.status);
 	inst.status.log_info(format!("Set param2 of {} nodes.",
 		fmt_big_num(count)));
 }
@@ -122,10 +118,10 @@ pub fn get_command() -> Command {
 		func: set_param2,
 		verify_args: Some(verify_args),
 		args: vec![
-			(ArgType::Param2, "New param2 value, between 0 and 255"),
-			(ArgType::Node(false), "Node to set param2 values of"),
+			(ArgType::Node(false), "Name of node to modify"),
 			(ArgType::Area(false), "Area in which to set param2 values"),
 			(ArgType::Invert, "Set param2 values *outside* the given area."),
+			(ArgType::Param2, "New param2 value, between 0 and 255"),
 		],
 		help: "Set param2 values of certain nodes."
 	}

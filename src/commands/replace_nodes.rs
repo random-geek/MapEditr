@@ -146,6 +146,6 @@ pub fn get_command() -> Command {
 			(ArgType::Area(false), "Area in which to replace nodes"),
 			(ArgType::Invert, "Replace nodes *outside* the given area.")
 		],
-		help: "Replace all of one node with another node."
+		help: "Replace one node with another node."
 	}
 }

@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 /// Maps 16-bit node IDs to actual node names.
 ///
 /// Relevant Minetest source file: /src/nameidmapping.cpp
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct NameIdMap(pub BTreeMap<u16, Vec<u8>>);
 
 impl NameIdMap {

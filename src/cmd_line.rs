@@ -316,7 +316,7 @@ pub fn run_cmd_line() {
 				},
 				ServerEvent::ConfirmRequest => {
 					newline_if(&mut need_newline);
-					status.confirm(get_confirmation());
+					status.send_confirmation(get_confirmation());
 				},
 			},
 			Err(err) => {

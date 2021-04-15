@@ -36,10 +36,11 @@ runs much faster than the default, unoptimized version.
 For an overview of how MapEditr works and a listing of commands and their
 usages, see [Manual.md](Manual.md).
 
-Some useful things you can do with MapEditr:
+These are just a few of the useful things you can do with MapEditr:
 
 - Remove unknown nodes left by old mods with `replacenodes`.
 - Build extremely long walls and roads in seconds using `fill`.
+- Selectively delete entities and/or dropped items using `deleteobjects`.
 - Combine multiple worlds or map saves with `overlay`.
 
 ## License

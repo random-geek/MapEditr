@@ -83,10 +83,9 @@ pub fn get_command() -> Command {
 		func: delete_metadata,
 		verify_args: Some(verify_args),
 		args: vec![
+			(ArgType::Node(false), "Name of node to delete metadata from"),
 			(ArgType::Area(false), "Area in which to delete metadata"),
-			(ArgType::Invert,
-				"If present, delete metadata *outside* the given area."),
-			(ArgType::Node(false), "Name of node to delete metadata from")
+			(ArgType::Invert, "Delete metadata *outside* the given area."),
 		],
 		help: "Delete node metadata of certain nodes."
 	}

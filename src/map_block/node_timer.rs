@@ -2,7 +2,7 @@ use super::*;
 use std::cmp::min;
 
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct NodeTimer {
 	pub pos: u16,
 	pub timeout: u32,

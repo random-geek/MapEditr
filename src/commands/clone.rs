@@ -128,7 +128,7 @@ pub fn get_command() -> Command {
 		verify_args: Some(verify_args),
 		args: vec![
 			(ArgType::Area(true), "Area to clone"),
-			(ArgType::Offset(true), "Vector to shift the area by")
+			(ArgType::Offset(true), "Vector to shift the area's contents by")
 		],
 		help: "Clone (copy) the contents of an area to a new location."
 	}

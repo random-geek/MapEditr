@@ -228,8 +228,7 @@ pub fn get_command() -> Command {
 			(ArgType::InputMapPath, "Path to the source map/world"),
 			(ArgType::Area(false), "Area to copy from. If not specified, \
 				everything from the source map will be copied."),
-			(ArgType::Invert,
-				"If present, copy everything *outside* the given area."),
+			(ArgType::Invert, "Copy everything *outside* the given area."),
 			(ArgType::Offset(false), "Vector to shift nodes by when copying"),
 		],
 		help: "Copy part or all of a source map into the main map."

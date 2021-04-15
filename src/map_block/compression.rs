@@ -34,6 +34,10 @@ impl Compress for Vec<u8> {
 }
 
 
+/// Stores some data and its zlib-compressed equivalent.
+///
+/// The goal of this struct is to avoid recompressing data that was not
+/// modified from its original compressed form.
 #[derive(Clone, Debug)]
 pub struct ZlibContainer<T: Compress> {
 	compressed: Option<Vec<u8>>,

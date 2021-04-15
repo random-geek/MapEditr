@@ -8,6 +8,7 @@ use crate::spatial::{Vec3, Area, MAP_LIMIT};
 use crate::map_database::MapDatabase;
 use crate::commands;
 use crate::commands::ArgResult;
+use crate::utils::fmt_big_num;
 
 
 #[derive(Clone)]
@@ -200,7 +201,7 @@ impl StatusClient {
 		&self.event_rx
 	}
 
-	pub fn confirm(&self, choice: bool) {
+	pub fn send_confirmation(&self, choice: bool) {
 		self.event_tx.send(ClientEvent::ConfirmResponse(choice)).unwrap();
 	}
 }
@@ -235,8 +236,6 @@ pub struct InstBundle<'a> {
 
 
 fn verify_args(args: &InstArgs) -> anyhow::Result<()> {
-	// TODO: Complete verifications.
-
 	if args.area.is_none() && args.invert {
 		anyhow::bail!("Cannot invert without a specified area.");
 	}
@@ -314,7 +313,7 @@ fn open_map(path: PathBuf, flags: sqlite::OpenFlags)
 		if with_file.is_file() {
 			with_file
 		} else {
-			anyhow::bail!("could not find map file");
+			anyhow::bail!("Could not find the map file.");
 		}
 	};
 
@@ -335,17 +334,20 @@ fn compute_thread(args: InstArgs, status: StatusServer) -> anyhow::Result<()> {
 		}
 	}
 
-	let db_conn = open_map(PathBuf::from(&args.map_path),
-		sqlite::OpenFlags::new().set_read_write())?;
+	let db_conn = open_map(
+		PathBuf::from(&args.map_path),
+		sqlite::OpenFlags::new().set_read_write()
+	).context("Failed to open main world/map.")?;
 	let db = MapDatabase::new(&db_conn)
-		.context("Failed to open main world/map.")?;
+		.context("Main world or map database is invalid.")?;
 
-	let idb_conn = args.input_map_path.as_deref().map(
-		|imp| open_map(PathBuf::from(imp),
-			sqlite::OpenFlags::new().set_read_only())
-	).transpose().context("Failed to open input world/map.")?;
+	let idb_conn = args.input_map_path.as_deref()
+		.map(|imp| open_map(PathBuf::from(imp),
+			sqlite::OpenFlags::new().set_read_only()))
+		.transpose().context("Failed to open input world/map.")?;
 	let idb = match &idb_conn {
-		Some(conn) => Some(MapDatabase::new(conn)?),
+		Some(conn) => Some(MapDatabase::new(conn)
+			.context("Input world or map database is invalid.")?),
 		None => None
 	};
 
@@ -370,7 +372,9 @@ fn compute_thread(args: InstArgs, status: StatusServer) -> anyhow::Result<()> {
 	let fails = inst.status.get_status().blocks_failed;
 	if fails > 0 {
 		inst.status.log_info(format!(
-			"Skipped {} invalid/unsupported mapblocks.", fails));
+			"Skipped {} invalid/unsupported mapblocks.",
+			fmt_big_num(fails as u64)
+		));
 	}
 
 	if inst.db.is_in_transaction() {

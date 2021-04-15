@@ -1,4 +1,5 @@
-mod time_keeper;
+// Kept for testing purposes
+// mod time_keeper;
 mod spatial;
 mod utils;
 mod map_database;
@@ -9,8 +10,7 @@ mod commands;
 mod cmd_line;
 
 
-// TODO: Check for unnecessary #derives!
 fn main() {
-	// TODO: Add GUI. hmm...
+	// TODO: Add a GUI. hmm...
 	cmd_line::run_cmd_line();
 }

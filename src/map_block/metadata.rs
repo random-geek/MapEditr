@@ -9,7 +9,7 @@ use memmem::{Searcher, TwoWaySearcher};
 const END_STR: &[u8; 13] = b"EndInventory\n";
 
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct NodeMetadata {
 	pub vars: HashMap<Vec<u8>, (Vec<u8>, bool)>,
 	pub inv: Vec<u8>
@@ -100,20 +100,21 @@ impl NodeMetadataListExt for NodeMetadataList {
 	fn serialize(&self, block_version: u8) -> Vec<u8> {
 		let buf = Vec::new();
 		let mut data = Cursor::new(buf);
+		// Skip empty metadata when serializing.
+		let count = self.iter().filter(|&(_, m)| !m.is_empty()).count();
 
-		if self.len() == 0 {
+		if count == 0 {
 			data.write_u8(0).unwrap();
 		} else {
 			let version = if block_version >= 28 { 2 } else { 1 };
 			data.write_u8(version).unwrap();
-			data.write_u16::<BigEndian>(self.len() as u16).unwrap();
+			data.write_u16::<BigEndian>(count as u16).unwrap();
 
 			for (&pos, meta) in self {
-				if meta.is_empty() {
-					continue; // Skip empty metadata.
+				if !meta.is_empty() {
+					data.write_u16::<BigEndian>(pos).unwrap();
+					meta.serialize(&mut data, version);
 				}
-				data.write_u16::<BigEndian>(pos).unwrap();
-				meta.serialize(&mut data, version);
 			}
 		}
 

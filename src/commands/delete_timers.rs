@@ -68,11 +68,9 @@ pub fn get_command() -> Command {
 		func: delete_timers,
 		verify_args: None,
 		args: vec![
-			(ArgType::Area(false), "Area in which to delete timers"),
+			(ArgType::Node(false), "Name of node to delete node timers from"),
+			(ArgType::Area(false), "Area in which to delete node timers"),
 			(ArgType::Invert, "Delete node timers *outside* the given area."),
-			(ArgType::Node(false),
-				"Node to delete timers from. If not specified, node timers \
-				will be deleted from any node.")
 		],
 		help: "Delete node timers of certain nodes."
 	}

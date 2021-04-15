@@ -12,7 +12,7 @@ pub fn is_valid_generated(data: &[u8]) -> bool {
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct MapBlock {
 	pub version: u8,
 	pub flags: u8,

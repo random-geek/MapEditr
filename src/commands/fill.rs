@@ -82,8 +82,8 @@ pub fn get_command() -> Command {
 			(ArgType::Area(true), "Area to fill"),
 			(ArgType::Invert,
 				"Fill all generated nodes *outside* the given area."),
-			(ArgType::NewNode, "Name of node to fill the area with"),
+			(ArgType::NewNode, "Name of the node to fill with"),
 		],
-		help: "Fill the entire area with one node."
+		help: "Set all nodes inside or outside an area."
 	}
 }
