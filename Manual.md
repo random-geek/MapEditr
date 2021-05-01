@@ -52,8 +52,6 @@ WorldEdit `//fixlight` command.
 
 ## Commands
 
-TODO: Unify documentation style, argument ordering, provide examples.
-
 ### clone
 
 Usage: `clone --p1 x y z --p2 x y z --offset x y z`

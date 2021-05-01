@@ -45,7 +45,11 @@ These are just a few of the useful things you can do with MapEditr:
 
 ## License
 
-TODO
+MapEditr is under the terms of the MIT license as defined in `LICENSE.txt`.
+
+Additionally, if you use code from MapEditr in another project, I would
+greatly appreciate a reasonable acknowledgement/attribution of MapEditr in your
+project's readme or documentation.
 
 ## Acknowledgments
 
