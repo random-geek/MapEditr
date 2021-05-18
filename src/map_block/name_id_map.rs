@@ -14,7 +14,7 @@ impl NameIdMap {
 	{
 		let version = data.read_u8()?;
 		if version != 0 {
-			return Err(MapBlockError::Other);
+			return Err(MapBlockError::InvalidSubVersion);
 		}
 
 		let count = data.read_u16::<BigEndian>()? as usize;

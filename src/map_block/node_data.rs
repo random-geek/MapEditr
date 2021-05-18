@@ -45,7 +45,7 @@ impl Compress for NodeData {
 		let mut param2 = Vec::with_capacity(NODE_COUNT);
 		decoder.read_to_end(&mut param2)?;
 		if param2.len() != NODE_COUNT {
-			return Err(MapBlockError::DataError)
+			return Err(MapBlockError::BadData)
 		}
 
 		let total_in = decoder.total_in();

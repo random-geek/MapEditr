@@ -49,3 +49,31 @@ impl TimeKeeper {
 		status.log_info(msg);
 	}
 }
+
+
+pub fn debug_bytes(src: &[u8]) -> String {
+	let mut dst = String::new();
+	for &byte in src {
+		if byte == b'\\' {
+			dst += "\\\\";
+		} else if byte >= 32 && byte < 127 {
+			dst.push(byte as char);
+		} else {
+			dst += &format!("\\x{:0>2x}", byte);
+		}
+	}
+	dst
+}
+
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn test_debug_bytes() {
+		let inp = b"\x00\x0a\x1f~~ Hello \\ World! ~~\x7f\xee\xff";
+		let out = r"\x00\x0a\x1f~~ Hello \\ World! ~~\x7f\xee\xff";
+		assert_eq!(&debug_bytes(&inp[..]), out);
+	}
+}

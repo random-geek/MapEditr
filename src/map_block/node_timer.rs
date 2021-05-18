@@ -18,7 +18,7 @@ pub fn deserialize_timers(src: &mut Cursor<&[u8]>)
 {
 	let data_len = src.read_u8()?;
 	if data_len != 10 {
-		return Err(MapBlockError::Other);
+		return Err(MapBlockError::InvalidFeature);
 	}
 
 	let count = src.read_u16::<BigEndian>()?;
