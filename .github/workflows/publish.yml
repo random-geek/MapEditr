@@ -1,6 +1,4 @@
-# Workflow adapted from https://daniellockyer.com/automated-rust-releases/.
-
-name: Publish
+name: Publish binaries
 
 on:
   push:
@@ -9,17 +7,8 @@ on:
 
 jobs:
   publish:
-    name: Publish for ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        name: [windows]
-
-        include:
-          - name: windows
-            os: windows-latest
-            artifact_name: target/release/mapeditr.exe
-            asset_name: mapeditr-windows
+    name: Publish binaries for Windows
+    runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v2
@@ -32,8 +21,13 @@ jobs:
     - name: Build
       run: cargo build --release --locked
 
-    - name: Upload binaries to release
-      uses: actions/upload-artifact@v2
+    - name: Upload artifacts to release
+      uses: softprops/action-gh-release@v1
       with:
-        name: ${{ matrix.asset_name }}
-        path: ${{ matrix.artifact_name }}
+        files: |
+          LICENSE.txt
+          README.md
+          Manual.md
+          target/release/mapeditr.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
