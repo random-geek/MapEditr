@@ -19,15 +19,13 @@ jobs:
         toolchain: stable
 
     - name: Build
-      run: cargo build --release --locked
+      run: |
+        cargo build --release --locked
+        tar.exe -c -a -f mapeditr-windows.zip target/release/mapeditr.exe LICENSE.txt README.md Manual.md
 
     - name: Upload artifacts to release
       uses: softprops/action-gh-release@v1
       with:
-        files: |
-          LICENSE.txt
-          README.md
-          Manual.md
-          target/release/mapeditr.exe
+        files: mapeditr-windows.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
