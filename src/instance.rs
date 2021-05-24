@@ -267,12 +267,10 @@ fn verify_args(args: &InstArgs) -> anyhow::Result<()> {
 			let mod_name = &name[..delim];
 			let item_name = &name[delim + 1..];
 
-			mod_name.find(|c: char|
-				!(c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_'))
-				.is_none()
-			&& item_name.find(|c: char|
-				!(c.is_ascii_alphanumeric() || c == '_'))
-				.is_none()
+			mod_name.chars().all(|c: char|
+				c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+			&& item_name.chars().all(|c: char|
+				c.is_ascii_alphanumeric() || c == '_')
 		}
 	}
 

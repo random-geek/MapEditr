@@ -1,14 +1,14 @@
 [package]
 name = "mapeditr"
-version = "0.1.0"
-authors = ["random-geek <35757396+random-geek@users.noreply.github.com>"]
+version = "1.0.0"
+authors = ["random-geek (github.com/random-geek)"]
 edition = "2018"
 
 [dependencies]
-	sqlite = "0.25"
-	flate2 = "1"
-	clap = "2"
-	byteorder = "1"
-	memmem = "0.1"
 	anyhow = "1"
+	byteorder = "1"
+	clap = "2"
+	flate2 = "1"
+	memmem = "0.1"
+	sqlite = "0.26"
 	thiserror = "1"

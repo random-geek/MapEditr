@@ -1,4 +1,4 @@
-name: Publish binaries
+name: Publish builds
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   publish:
-    name: Publish binaries for Windows
+    name: Publish build for Windows
     runs-on: windows-latest
 
     steps:
@@ -21,7 +21,7 @@ jobs:
     - name: Build
       run: |
         cargo build --release --locked
-        tar.exe -c -a -f mapeditr-windows.zip target/release/mapeditr.exe LICENSE.txt README.md Manual.md
+        tar.exe -c -a -f mapeditr-windows.zip LICENSE.txt README.md Manual.md -C target/release mapeditr.exe
 
     - name: Upload artifacts to release
       uses: softprops/action-gh-release@v1

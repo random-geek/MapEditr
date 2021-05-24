@@ -136,7 +136,6 @@ impl MapBlock {
 mod tests {
 	use super::*;
 	use crate::spatial::Vec3;
-	// use crate::testing::debug_bytes; // TODO
 	use std::path::Path;
 
 	fn read_test_file(filename: &str) -> anyhow::Result<Vec<u8>> {
