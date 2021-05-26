@@ -140,7 +140,7 @@ mod tests {
 
 	fn read_test_file(filename: &str) -> anyhow::Result<Vec<u8>> {
 		let cargo_path = std::env::var("CARGO_MANIFEST_DIR")?;
-		let path = Path::new(&cargo_path).join("test_data").join(filename);
+		let path = Path::new(&cargo_path).join("testing").join(filename);
 		Ok(std::fs::read(path)?)
 	}
 
