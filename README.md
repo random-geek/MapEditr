@@ -1,5 +1,8 @@
 # MapEditr
 
+[![](https://img.shields.io/badge/Minetest%20Forums-MapEditr-4E9A06)](https://forum.minetest.net/viewtopic.php?f=14&t=26803)
+![](https://img.shields.io/github/v/release/random-geek/MapEditr)
+
 MapEditr is a command-line tool for fast manipulation of Minetest worlds. It
 can replace nodes and items, fill areas, combine parts of different worlds, and
 much more.
