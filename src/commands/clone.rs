@@ -3,8 +3,7 @@ use super::{Command, ArgResult, BLOCK_CACHE_SIZE};
 use crate::{unwrap_or, opt_unwrap_or};
 use crate::spatial::{Vec3, Area, MAP_LIMIT};
 use crate::map_database::MapDatabase;
-use crate::map_block::{MapBlock, MapBlockError, is_valid_generated,
-	NodeMetadataList, NodeMetadataListExt};
+use crate::map_block::{MapBlock, MapBlockError, is_valid_generated};
 use crate::block_utils::{merge_blocks, merge_metadata, clean_name_id_map};
 use crate::instance::{ArgType, InstBundle, InstArgs};
 use crate::utils::{CacheMap, query_keys};
@@ -69,14 +68,11 @@ fn clone(inst: &mut InstBundle) {
 	for dst_key in dst_keys {
 		inst.status.inc_done();
 
-		let (mut dst_block, mut dst_meta) = unwrap_or!(
+		let mut dst_block = unwrap_or!(
 			opt_unwrap_or!(
 				get_cached(&mut inst.db, &mut block_cache, dst_key),
 				continue
-			).and_then(|b| -> Result<_, MapBlockError> {
-				let m = NodeMetadataList::deserialize(b.metadata.get_ref())?;
-				Ok((b, m))
-			}),
+			),
 			{ inst.status.inc_failed(); continue; }
 		);
 
@@ -90,14 +86,10 @@ fn clone(inst: &mut InstBundle) {
 				continue;
 			}
 			let src_key = src_pos.to_block_key();
-			let (src_block, src_meta) = opt_unwrap_or!(
-				|| -> Option<_> {
-					let b = get_cached(
-						&mut inst.db, &mut block_cache, src_key)?.ok()?;
-					let m = NodeMetadataList::deserialize(b.metadata.get_ref())
-						.ok()?;
-					Some((b, m))
-				}(),
+			// Continue if a None or Some(Err) value is retrieved.
+			let src_block = opt_unwrap_or!(
+				get_cached(&mut inst.db, &mut block_cache, src_key)
+					.map(|res| res.ok()).flatten(),
 				continue
 			);
 
@@ -109,12 +101,11 @@ fn clone(inst: &mut InstBundle) {
 
 			merge_blocks(&src_block, &mut dst_block,
 				src_frag_rel, dst_frag_rel);
-			merge_metadata(&src_meta, &mut dst_meta,
+			merge_metadata(&src_block.metadata, &mut dst_block.metadata,
 				src_frag_rel, dst_frag_rel);
 		}
 
 		clean_name_id_map(&mut dst_block);
-		*dst_block.metadata.get_mut() = dst_meta.serialize(dst_block.version);
 		inst.db.set_block(dst_key, &dst_block.serialize()).unwrap();
 	}
 

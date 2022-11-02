@@ -3,7 +3,7 @@ use super::{Command, ArgResult};
 use crate::unwrap_or;
 use crate::spatial::Vec3;
 use crate::instance::{ArgType, InstArgs, InstBundle};
-use crate::map_block::{MapBlock, NodeMetadataList, NodeMetadataListExt};
+use crate::map_block::MapBlock;
 use crate::utils::{query_keys, to_bytes, to_slice, fmt_big_num};
 
 
@@ -32,20 +32,15 @@ fn delete_metadata(inst: &mut InstBundle) {
 		let mut block = unwrap_or!(MapBlock::deserialize(&data),
 			{ inst.status.inc_failed(); continue; });
 
-		let node_data = block.node_data.get_ref();
 		let node_id = node.as_deref().and_then(|n| block.nimap.get_id(n));
 		if node.is_some() && node_id.is_none() {
 			continue; // Block doesn't contain the required node.
 		}
 
-		let mut meta = unwrap_or!(
-			NodeMetadataList::deserialize(block.metadata.get_ref()),
-			{ inst.status.inc_failed(); continue; });
-
 		let block_corner = Vec3::from_block_key(key) * 16;
-		let mut to_delete = Vec::with_capacity(meta.len());
+		let mut to_delete = Vec::with_capacity(block.metadata.len());
 
-		for (&idx, _) in &meta {
+		for (&idx, _) in &block.metadata {
 			let abs_pos = Vec3::from_u16_key(idx) + block_corner;
 
 			if let Some(a) = inst.args.area {
@@ -54,7 +49,7 @@ fn delete_metadata(inst: &mut InstBundle) {
 				}
 			}
 			if let Some(id) = node_id {
-				if node_data.nodes[idx as usize] != id {
+				if block.node_data.nodes[idx as usize] != id {
 					continue;
 				}
 			}
@@ -64,10 +59,9 @@ fn delete_metadata(inst: &mut InstBundle) {
 
 		if !to_delete.is_empty() {
 			for idx in &to_delete {
-				meta.remove(idx);
+				block.metadata.remove(idx);
 			}
 			count += to_delete.len() as u64;
-			*block.metadata.get_mut() = meta.serialize(block.version);
 			inst.db.set_block(key, &block.serialize()).unwrap();
 		}
 	}

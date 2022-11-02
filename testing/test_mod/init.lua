@@ -11,13 +11,34 @@ local colors = {
 
 
 minetest.register_node("test_mod:stone", {
+	description = "test_mod stone",
 	drawtype = "normal",
 	tiles = {"default_stone.png^[colorize:#3FFF3F:63"},
 	groups = {oddly_breakable_by_hand = 3},
 })
 
 
+minetest.register_node("test_mod:metadata", {
+	description = "test_mod metadata",
+	drawtype = "normal",
+	tiles = {"default_stone.png^[colorize:#FF3F3F:63"},
+	groups = {oddly_breakable_by_hand = 3},
+
+	on_construct = function(pos)
+		local meta = minetest.get_meta(pos)
+		meta:set_string("formspec",
+			"size[8,5]" ..
+			"list[current_name;main;0,0;1,1;]" ..
+			"list[current_player;main;0,1;8,4;]")
+		meta:set_string("infotext", "Test Chest")
+		local inv = meta:get_inventory()
+		inv:set_size("main", 1)
+	end,
+})
+
+
 minetest.register_node("test_mod:timer", {
+	description = "test_mod timer",
 	drawtype = "nodebox",
 	node_box = {
 		type = "fixed",

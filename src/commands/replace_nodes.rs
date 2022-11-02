@@ -16,6 +16,7 @@ fn do_replace(
 	invert: bool
 ) -> u64
 {
+	let nodes = &mut block.node_data.nodes;
 	let block_pos = Vec3::from_block_key(key);
 	let mut replaced = 0;
 
@@ -30,20 +31,19 @@ fn do_replace(
 			Some(id) => (id, false),
 			None => (block.nimap.get_max_id().unwrap() + 1, true)
 		};
-		let nd = block.node_data.get_mut();
 
 		if invert {
 			for idx in InverseBlockIterator::new(node_area) {
-				if nd.nodes[idx] == old_id {
-					nd.nodes[idx] = new_id;
+				if nodes[idx] == old_id {
+					nodes[idx] = new_id;
 					replaced += 1;
 				}
 			}
 		} else {
 			for pos in &node_area {
 				let idx = (pos.x + 16 * (pos.y + 16 * pos.z)) as usize;
-				if nd.nodes[idx] == old_id {
-					nd.nodes[idx] = new_id;
+				if nodes[idx] == old_id {
+					nodes[idx] = new_id;
 					replaced += 1;
 				}
 			}
@@ -55,8 +55,8 @@ fn do_replace(
 		}
 
 		// If all instances of the old ID were replaced, remove the old ID.
-		if !nd.nodes.contains(&old_id) {
-			for node in &mut nd.nodes {
+		if !nodes.contains(&old_id) {
+			for node in nodes {
 				*node -= (*node > old_id) as u16;
 			}
 			block.nimap.remove_shift(old_id);
@@ -72,8 +72,7 @@ fn do_replace(
 			new_id -= (new_id > old_id) as u16;
 
 			// Map old node IDs to new node IDs.
-			let nd = block.node_data.get_mut();
-			for id in &mut nd.nodes {
+			for id in nodes {
 				*id = if *id == old_id {
 					replaced += 1;
 					new_id
@@ -85,8 +84,7 @@ fn do_replace(
 		// Block does not contain replacement node.
 		// Simply replace the node name in the name-ID map.
 		else {
-			let nd = block.node_data.get_ref();
-			for id in &nd.nodes {
+			for id in nodes {
 				replaced += (*id == old_id) as u64;
 			}
 			block.nimap.0.insert(old_id, new_node.to_vec());

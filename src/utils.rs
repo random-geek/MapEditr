@@ -9,6 +9,8 @@ use crate::map_database::MapDatabase;
 use crate::spatial::{Area, Vec3};
 
 
+/// Note: For mapblock version 29 onwards, all block data is compressed, so
+/// the `search_strs` argument is ignored.
 pub fn query_keys(
 	db: &mut MapDatabase,
 	status: &StatusServer,
@@ -54,10 +56,16 @@ pub fn query_keys(
 					}
 				}
 			}
-			if !data_searchers.is_empty()
-				&& !data_searchers.iter().any(|s| s.search_in(&data).is_some())
-			{ // Data must match at least one search string.
-				continue;
+			if let Some(&block_version) = data.get(0) {
+				// If block version <= 28, data must match at least one search
+				// string. This optimization doesn't work for new mapblocks, as
+				// all block data is now compressed.
+				// TODO: Remove this legacy optimization?
+				if block_version <= 28 && !data_searchers.is_empty()
+					&& !data_searchers.iter().any(|s| s.search_in(&data).is_some())
+				{
+					continue;
+				}
 			}
 			keys.push(key);
 

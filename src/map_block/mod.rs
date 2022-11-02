@@ -5,7 +5,6 @@ use std::convert::TryFrom;
 use byteorder::{ByteOrder, BigEndian, ReadBytesExt, WriteBytesExt};
 
 mod map_block;
-mod compression;
 mod node_data;
 mod metadata;
 mod static_object;
@@ -13,8 +12,6 @@ mod node_timer;
 mod name_id_map;
 
 pub use map_block::{MapBlock, is_valid_generated};
-pub use compression::ZlibContainer;
-use compression::Compress;
 pub use node_data::NodeData;
 pub use metadata::{NodeMetadataList, NodeMetadataListExt};
 pub use static_object::{StaticObject, StaticObjectList, LuaEntityData};
@@ -79,14 +76,14 @@ fn read_string32(src: &mut Cursor<&[u8]>) -> Result<Vec<u8>, MapBlockError> {
 }
 
 
-fn write_string16(dst: &mut Cursor<Vec<u8>>, data: &[u8]) {
+fn write_string16<T: Write>(dst: &mut T, data: &[u8]) {
 	let len = u16::try_from(data.len()).unwrap();
 	dst.write_u16::<BigEndian>(len).unwrap();
 	dst.write(data).unwrap();
 }
 
 
-fn write_string32(dst: &mut Cursor<Vec<u8>>, data: &[u8]) {
+fn write_string32<T: Write>(dst: &mut T, data: &[u8]) {
 	let len = u32::try_from(data.len()).unwrap();
 	dst.write_u32::<BigEndian>(len).unwrap();
 	dst.write(data).unwrap();

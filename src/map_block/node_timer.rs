@@ -13,7 +13,7 @@ pub struct NodeTimer {
 pub type NodeTimerList = Vec<NodeTimer>;
 
 
-pub fn deserialize_timers(src: &mut Cursor<&[u8]>)
+pub fn deserialize_timers<T: Read>(src: &mut T)
 	-> Result<NodeTimerList, MapBlockError>
 {
 	let data_len = src.read_u8()?;
@@ -36,7 +36,7 @@ pub fn deserialize_timers(src: &mut Cursor<&[u8]>)
 }
 
 
-pub fn serialize_timers(timers: &NodeTimerList, dst: &mut Cursor<Vec<u8>>) {
+pub fn serialize_timers<T: Write>(timers: &NodeTimerList, dst: &mut T) {
 	dst.write_u8(10).unwrap();
 	dst.write_u16::<BigEndian>(timers.len() as u16).unwrap();
 

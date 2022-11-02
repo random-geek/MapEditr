@@ -24,8 +24,8 @@ pub fn merge_blocks(
 ) {
 	assert!(block_parts_valid(&src_area, &dst_area));
 
-	let src_nd = src_block.node_data.get_ref();
-	let dst_nd = dst_block.node_data.get_mut();
+	let src_nd = &src_block.node_data;
+	let dst_nd = &mut dst_block.node_data;
 	let offset = dst_area.min - src_area.min;
 	// Warning: diff can be negative!
 	let diff = offset.x + offset.y * 16 + offset.z * 256;
@@ -104,12 +104,11 @@ pub fn merge_metadata(
 
 /// Culls duplicate and unused IDs from the name-ID map and node data.
 pub fn clean_name_id_map(block: &mut MapBlock) {
-	let nd = block.node_data.get_mut();
 	let id_count = (block.nimap.get_max_id().unwrap() + 1) as usize;
 
 	// Determine which IDs are used.
 	let mut used = vec![false; id_count];
-	for id in &nd.nodes {
+	for id in &block.node_data.nodes {
 		used[*id as usize] = true;
 	}
 
@@ -136,7 +135,7 @@ pub fn clean_name_id_map(block: &mut MapBlock) {
 	block.nimap = new_nimap;
 
 	// Re-assign node IDs.
-	for id in &mut nd.nodes {
+	for id in &mut block.node_data.nodes {
 		*id = map[*id as usize];
 	}
 }

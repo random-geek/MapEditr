@@ -10,7 +10,7 @@ use crate::utils::{query_keys, to_bytes, to_slice, fmt_big_num};
 fn set_param2_partial(block: &mut MapBlock, area: Area, invert: bool,
 	node_id: Option<u16>, val: u8) -> u64
 {
-	let nd = block.node_data.get_mut();
+	let nd = &mut block.node_data;
 	let mut count = 0;
 
 	if invert {
@@ -74,7 +74,7 @@ fn set_param2(inst: &mut InstBundle) {
 			continue;
 		}
 
-		let nd = block.node_data.get_mut();
+		let nd = &mut block.node_data;
 		if let Some(area) = inst.args.area
 			.filter(|a| a.contains_block(pos) != a.touches_block(pos))
 		{ // Modify part of block

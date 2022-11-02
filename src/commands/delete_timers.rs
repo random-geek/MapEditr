@@ -26,7 +26,6 @@ fn delete_timers(inst: &mut InstBundle) {
 		if node.is_some() && node_id.is_none() {
 			continue; // Block doesn't contain the required node.
 		}
-		let node_data = block.node_data.get_ref();
 
 		let block_corner = Vec3::from_block_key(key) * 16;
 		let mut modified = false;
@@ -42,7 +41,7 @@ fn delete_timers(inst: &mut InstBundle) {
 				}
 			}
 			if let Some(id) = node_id {
-				if node_data.nodes[pos_idx as usize] != id {
+				if block.node_data.nodes[pos_idx as usize] != id {
 					continue;
 				}
 			}

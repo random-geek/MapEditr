@@ -9,11 +9,9 @@ use crate::utils::{query_keys, to_bytes, fmt_big_num};
 
 
 fn fill_area(block: &mut MapBlock, id: u16, area: Area, invert: bool) {
-	let nd = block.node_data.get_mut();
-
 	if invert {
 		for i in InverseBlockIterator::new(area) {
-			nd.nodes[i] = id;
+			block.node_data.nodes[i] = id;
 		}
 	} else {
 		for z in area.min.z ..= area.max.z {
@@ -21,7 +19,7 @@ fn fill_area(block: &mut MapBlock, id: u16, area: Area, invert: bool) {
 			for y in area.min.y ..= area.max.y {
 				let zy_start = z_start + y * 16;
 				for x in area.min.x ..= area.max.x {
-					nd.nodes[(zy_start + x) as usize] = id;
+					block.node_data.nodes[(zy_start + x) as usize] = id;
 				}
 			}
 		}
@@ -59,11 +57,10 @@ fn fill(inst: &mut InstBundle) {
 			clean_name_id_map(&mut block);
 			count += block_part.volume();
 		} else { // Fill entire block
-			let nd = block.node_data.get_mut();
-			nd.nodes.fill(0);
+			block.node_data.nodes.fill(0);
 			block.nimap.0.clear();
 			block.nimap.0.insert(0, node.to_vec());
-			count += nd.nodes.len() as u64;
+			count += block.node_data.nodes.len() as u64;
 		}
 
 		inst.db.set_block(key, &block.serialize()).unwrap();

@@ -3,7 +3,7 @@ use super::{Command, ArgResult};
 use crate::unwrap_or;
 use crate::spatial::Vec3;
 use crate::instance::{ArgType, InstArgs, InstBundle};
-use crate::map_block::{MapBlock, NodeMetadataList, NodeMetadataListExt};
+use crate::map_block::MapBlock;
 use crate::utils::{query_keys, to_bytes, fmt_big_num};
 
 
@@ -82,21 +82,16 @@ fn replace_in_inv(inst: &mut InstBundle) {
 		let mut block = unwrap_or!(MapBlock::deserialize(&data),
 			{ inst.status.inc_failed(); continue; });
 
-		let node_data = block.node_data.get_ref();
 		let node_ids: Vec<_> = nodes.iter()
 			.filter_map(|n| block.nimap.get_id(n)).collect();
 		if !nodes.is_empty() && node_ids.is_empty() {
 			continue; // Block doesn't contain any of the required nodes.
 		}
 
-		let mut meta = unwrap_or!(
-			NodeMetadataList::deserialize(block.metadata.get_ref()),
-			{ inst.status.inc_failed(); continue; });
-
 		let block_corner = Vec3::from_block_key(key) * 16;
 		let mut modified = false;
 
-		for (&idx, data) in &mut meta {
+		for (&idx, data) in &mut block.metadata {
 			let pos = Vec3::from_u16_key(idx);
 			let abs_pos = pos + block_corner;
 			if let Some(a) = inst.args.area {
@@ -105,7 +100,7 @@ fn replace_in_inv(inst: &mut InstBundle) {
 				}
 			}
 			if !node_ids.is_empty()
-				&& !node_ids.contains(&node_data.nodes[idx as usize])
+				&& !node_ids.contains(&block.node_data.nodes[idx as usize])
 			{
 				continue;
 			}
@@ -120,7 +115,6 @@ fn replace_in_inv(inst: &mut InstBundle) {
 		}
 
 		if modified {
-			*block.metadata.get_mut() = meta.serialize(block.version);
 			inst.db.set_block(key, &block.serialize()).unwrap();
 		}
 	}

@@ -9,33 +9,31 @@ use std::collections::BTreeMap;
 pub struct NameIdMap(pub BTreeMap<u16, Vec<u8>>);
 
 impl NameIdMap {
-	pub fn deserialize(data: &mut Cursor<&[u8]>)
-		-> Result<Self, MapBlockError>
-	{
-		let version = data.read_u8()?;
+	pub fn deserialize(src: &mut Cursor<&[u8]>) -> Result<Self, MapBlockError> {
+		let version = src.read_u8()?;
 		if version != 0 {
 			return Err(MapBlockError::InvalidSubVersion);
 		}
 
-		let count = data.read_u16::<BigEndian>()? as usize;
+		let count = src.read_u16::<BigEndian>()? as usize;
 		let mut map = BTreeMap::new();
 
 		for _ in 0..count {
-			let id = data.read_u16::<BigEndian>()?;
-			let name = read_string16(data)?;
+			let id = src.read_u16::<BigEndian>()?;
+			let name = read_string16(src)?;
 			map.insert(id, name);
 		}
 
 		Ok(Self(map))
 	}
 
-	pub fn serialize(&self, out: &mut Cursor<Vec<u8>>) {
-		out.write_u8(0).unwrap();
-		out.write_u16::<BigEndian>(self.0.len() as u16).unwrap();
+	pub fn serialize<T: Write>(&self, dst: &mut T) {
+		dst.write_u8(0).unwrap();
+		dst.write_u16::<BigEndian>(self.0.len() as u16).unwrap();
 
-		for (id, name) in &self.0 {
-			out.write_u16::<BigEndian>(*id).unwrap();
-			write_string16(out, name);
+		for (&id, name) in &self.0 {
+			dst.write_u16::<BigEndian>(id).unwrap();
+			write_string16(dst, name);
 		}
 	}
 

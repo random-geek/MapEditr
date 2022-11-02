@@ -1,6 +1,6 @@
 [package]
 name = "mapeditr"
-version = "1.0.0"
+version = "1.1.0"
 authors = ["random-geek (github.com/random-geek)"]
 edition = "2018"
 
@@ -12,3 +12,4 @@ edition = "2018"
 	memmem = "0.1"
 	sqlite = "0.26"
 	thiserror = "1"
+	zstd = "0.11"

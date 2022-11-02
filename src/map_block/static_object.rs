@@ -22,7 +22,7 @@ impl StaticObject {
 		Ok(Self {obj_type, f_pos, data})
 	}
 
-	fn serialize(&self, dst: &mut Cursor<Vec<u8>>) {
+	fn serialize<T: Write>(&self, dst: &mut T) {
 		dst.write_u8(self.obj_type).unwrap();
 		dst.write_i32::<BigEndian>(self.f_pos.x).unwrap();
 		dst.write_i32::<BigEndian>(self.f_pos.y).unwrap();
@@ -54,7 +54,7 @@ pub fn deserialize_objects(src: &mut Cursor<&[u8]>)
 }
 
 
-pub fn serialize_objects(objects: &StaticObjectList, dst: &mut Cursor<Vec<u8>>)
+pub fn serialize_objects<T: Write>(objects: &StaticObjectList, dst: &mut T)
 {
 	dst.write_u8(0).unwrap();
 	dst.write_u16::<BigEndian>(objects.len() as u16).unwrap();
